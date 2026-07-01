@@ -1,0 +1,23 @@
+END USER LICENSE AGREEMENT
+
+This End User License Agreement ("Agreement") is a legal agreement between you (either an individual or an entity) and the vendor/author of this software ("G-Trax POS").
+
+By installing, copying, or otherwise using the software, you agree to be bound by the terms of this Agreement. If you do not agree to the terms of this Agreement, do not install or use the Software.
+
+1. GRANT OF LICENSE
+The vendor grants you a revocable, non-exclusive, non-transferable, limited license to download, install, and use the Software strictly in accordance with the terms of this Agreement.
+
+2. DEVICE BINDING
+This Software copy is bound to a single authorized device through MAC Address verification. You may not distribute, duplicate, or bypass this security mechanism to run the software on unauthorized machines. 
+
+3. INTELLECTUAL PROPERTY RIGHTS
+The Software and all intellectual property rights related to it remain the property of the vendor.
+
+4. RESTRICTIONS
+You may not reverse engineer, decompile, or disassemble the Software.
+
+5. TERMINATION
+This Agreement is effective until terminated. Your rights under this Agreement will terminate automatically without notice if you fail to comply with any of its terms.
+
+6. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
