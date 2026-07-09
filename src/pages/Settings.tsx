@@ -36,7 +36,10 @@ const Settings: React.FC = () => {
         invoiceFooter: 'Thank you for your business!',
         cardDiscountPercentage: 0,
         themeColor: '#8b5cf6',
-        accentColor: '#d946ef'
+        accentColor: '#d946ef',
+        receiptWidth: 80,
+        receiptFontSize: 12,
+        receiptPadding: 10
       });
     }
   }, [settings]);
@@ -237,6 +240,28 @@ const Settings: React.FC = () => {
               <div className="space-y-3 mt-4">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Footer Note</label>
                 <textarea value={formData.invoiceFooter} onChange={(e) => setFormData({ ...formData, invoiceFooter: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border rounded-xl h-24" />
+              </div>
+
+              {/* Receipt Layout Tuning */}
+              <div className="border-t border-slate-100 pt-6 mt-6">
+                <h4 className="text-sm font-bold text-slate-900 mb-4">Thermal Printer Receipt Tuning</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Width (mm)</label>
+                    <input type="number" value={formData.receiptWidth ?? 80} onChange={(e) => setFormData({ ...formData, receiptWidth: parseInt(e.target.value) || 80 })} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" />
+                    <p className="text-[10px] text-slate-400 font-medium">Common: 80mm or 58mm</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Font Size (px)</label>
+                    <input type="number" value={formData.receiptFontSize ?? 12} onChange={(e) => setFormData({ ...formData, receiptFontSize: parseInt(e.target.value) || 12 })} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" />
+                    <p className="text-[10px] text-slate-400 font-medium">Standard receipt font size is 12px</p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Receipt Padding (px)</label>
+                    <input type="number" value={formData.receiptPadding ?? 10} onChange={(e) => setFormData({ ...formData, receiptPadding: parseInt(e.target.value) || 10 })} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" />
+                    <p className="text-[10px] text-slate-400 font-medium">Inner padding on left/right sides</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -14,16 +14,16 @@ export const seedSampleData = async () => {
 
   // 2. Create Restaurant Categories
   const categories = [
-    { id: 'cat_burgers', shopId, name: 'Burgers', color: '#f59e0b' },
-    { id: 'cat_pizza', shopId, name: 'Pizza', color: '#ef4444' },
-    { id: 'cat_chicken', shopId, name: 'Fried Chicken', color: '#f97316' },
-    { id: 'cat_sides', shopId, name: 'Fries & Sides', color: '#eab308' },
-    { id: 'cat_rolls', shopId, name: 'Rolls & Shawarma', color: '#84cc16' },
-    { id: 'cat_pasta', shopId, name: 'Pasta', color: '#10b981' },
-    { id: 'cat_rice', shopId, name: 'Rice', color: '#0ea5e9' },
-    { id: 'cat_chat', shopId, name: 'Fruit Chat', color: '#d946ef' },
-    { id: 'cat_drinks', shopId, name: 'Drinks', color: '#3b82f6' },
-    { id: 'cat_deals', shopId, name: 'Combo Deals', color: '#6366f1' }
+    { id: 'cat_burgers', shopId, name: 'Burgers', color: '#f59e0b', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_pizza', shopId, name: 'Pizza', color: '#ef4444', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_chicken', shopId, name: 'Fried Chicken', color: '#f97316', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_sides', shopId, name: 'Fries & Sides', color: '#eab308', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_rolls', shopId, name: 'Rolls & Shawarma', color: '#84cc16', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_pasta', shopId, name: 'Pasta', color: '#10b981', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_rice', shopId, name: 'Rice', color: '#0ea5e9', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_chat', shopId, name: 'Fruit Chat', color: '#d946ef', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_drinks', shopId, name: 'Drinks', color: '#3b82f6', createdAt: new Date(), updatedAt: new Date() },
+    { id: 'cat_deals', shopId, name: 'Combo Deals', color: '#6366f1', createdAt: new Date(), updatedAt: new Date() }
   ];
   await db.categories.bulkAdd(categories);
 

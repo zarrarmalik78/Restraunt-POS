@@ -7,8 +7,6 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import Sidebar from './components/layout/Sidebar';
 import { cn } from './lib/utils';
 // Pages
-import { seedSampleData } from './lib/seedData';
-import { db } from './db/database';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,6 +17,7 @@ import Customers from './pages/Customers';
 import Expenses from './pages/Expenses';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
+import Credits from './pages/Credits';
 import Warranty from './pages/Warranty';
 import RMA from './pages/RMA';
 import InventoryLog from './pages/InventoryLog';
@@ -29,30 +28,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [collapsed, setCollapsed] = React.useState(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
-
-  // Auto Seeder Logic
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    const autoSeed = async () => {
-      try {
-        // Probe if backend is alive
-        const res = await fetch('http://localhost:3001/api/settings').catch(() => null);
-        if (!res || !res.ok) throw new Error('Backend not ready');
-
-        const count = await db.products.count();
-        if (count === 0) {
-          console.log('Empty database detected. Auto-seeding full menu...');
-          await seedSampleData();
-          window.location.reload();
-        }
-      } catch (err) {
-        console.warn('Backend not ready or seeding failed, retrying in 500ms...', err);
-        timeoutId = setTimeout(autoSeed, 500);
-      }
-    };
-    autoSeed();
-    return () => clearTimeout(timeoutId);
-  }, []);
 
   return (
     <div className="flex min-h-screen bg-content-bg">
@@ -152,6 +127,12 @@ function App() {
             <Route path="/settings" element={
               <ProtectedRoute requiredRole="admin">
                 <Layout><Settings /></Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/credits" element={
+              <ProtectedRoute>
+                <Layout><Credits /></Layout>
               </ProtectedRoute>
             } />
             {/* 

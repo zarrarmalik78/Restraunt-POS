@@ -1,7 +1,6 @@
-#define MyAppName "Pizza Hut POS"
-#define MyAppVersion "1.0.0"
+#define MyAppName      "Pizza Hut POS"
+#define MyAppVersion   "1.0.0"
 #define MyAppPublisher "Pizza Hut"
-#define MyAppExeName "Pizza Hut POS.exe"
 
 [Setup]
 AppId={{D377B6BE-1456-43B0-8F97-B3B8A74AE8D1}
@@ -16,33 +15,48 @@ OutputBaseFilename=PizzaHutPOSInstaller
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=browser-release\dist\logo.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
-Source: "release\win-unpacked\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "release\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+; Frontend build
+Source: "browser-release\dist\*"; DestDir: "{app}\dist"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Backend server + its node_modules
+Source: "browser-release\server\*"; DestDir: "{app}\server"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Bundled Node.js runtime
+Source: "browser-release\runtime\node.exe"; DestDir: "{app}\runtime"; Flags: ignoreversion
+
+; Launcher script
+Source: "browser-release\launcher.vbs"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+; Start Menu shortcut → runs launcher silently via wscript
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{sys}\wscript.exe"; Parameters: "/b ""{app}\launcher.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\unins000.exe"
+
+; Desktop shortcut (optional, ticked by default)
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{sys}\wscript.exe"; Parameters: "/b ""{app}\launcher.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\unins000.exe"; Tasks: desktopicon
+
+[Run]
+; Launch the app after installation finishes
+Filename: "{sys}\wscript.exe"; Parameters: "/b ""{app}\launcher.vbs"""; WorkingDir: "{app}"; Description: "Launch {#MyAppName}"; Flags: postinstall nowait skipifsilent
 
 [Code]
 var
   DataDir: String;
 
-// Function to find a suitable non-system drive
+// Find the best available non-system drive for the database
 function FindBestDataDrive(): String;
 var
   I: Integer;
   DrivePath: String;
 begin
-  // Start searching from D to Z
   for I := Ord('D') to Ord('Z') do
   begin
     DrivePath := Chr(I) + ':\';
@@ -52,8 +66,6 @@ begin
       Exit;
     end;
   end;
-  
-  // Fallback to C:\
   Result := 'C:\';
 end;
 
@@ -64,26 +76,18 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    // Determine the data directory
+    // Determine and create database directory
     DataDir := FindBestDataDrive() + 'PizzaHutPOS-Data';
-    
-    // Create the directory
     if not DirExists(DataDir) then
-    begin
       ForceDirectories(DataDir);
-    end;
-    
-    // Write configuration file to ProgramData
+
+    // Write config.json to ProgramData so the server can find the DB path
     ConfigPath := ExpandConstant('{commonappdata}\PizzaHutPOS');
     if not DirExists(ConfigPath) then
-    begin
       ForceDirectories(ConfigPath);
-    end;
-    
-    // JSON content. 
+
     ConfigContent := '{"dataDir": "' + DataDir + '"}';
     StringChange(ConfigContent, '\', '\\');
-    
     SaveStringToFile(ConfigPath + '\config.json', ConfigContent, False);
   end;
 end;
@@ -94,11 +98,9 @@ var
 begin
   if CurUninstallStep = usPostUninstall then
   begin
-    // Remove the config file, but keep the database
+    // Remove config only — preserve the database
     ConfigPath := ExpandConstant('{commonappdata}\PizzaHutPOS\config.json');
     if FileExists(ConfigPath) then
-    begin
       DeleteFile(ConfigPath);
-    end;
   end;
 end;

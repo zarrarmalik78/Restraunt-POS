@@ -6,11 +6,12 @@
   "main": "main.cjs",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite --port=3000 --host=0.0.0.0\"",
-    "server": "node server/index.js",
+    "server": "node server/index.cjs",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "browser:build": "node scripts/build-browser.cjs",
     "electron:dev": "concurrently \"vite --port=3000\" \"electron .\"",
     "electron:build": "node scripts/build.js"
   },
@@ -61,13 +62,11 @@
   "build": {
     "appId": "com.pizzahut.pos",
     "productName": "Pizza Hut POS",
-    "icon": "dist/logo.png",
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis",
-      "icon": "dist/logo.png"
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
@@ -79,6 +78,9 @@
       "main.cjs",
       "preload.cjs",
       "package.json"
+    ],
+    "asarUnpack": [
+      "server/**/*"
     ]
   }
 }

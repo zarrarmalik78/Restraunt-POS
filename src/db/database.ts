@@ -5,8 +5,9 @@ export interface Product {
   categoryId: string;
   costPrice: number;
   sellingPrice: number;
+  customDiscountedPrice?: number;
   image?: string;
-  variants?: { name: string; price: number; cost: number }[];
+  variants?: { name: string; price: number; cost: number; customDiscountedPrice?: number }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +78,7 @@ export interface SaleItem {
   totalCost: number;
   totalPrice: number;
   profit: number;
+  customDiscountedPrice?: number;
   kitchenNote?: string;
   variantName?: string;
   isDeal?: boolean;
@@ -97,6 +99,9 @@ export interface Sale {
   totalProfit: number;
   paymentMethod: 'cash' | 'card';
   orderType: 'dine_in' | 'take_away' | 'delivery';
+  tableNumber?: string;
+  status?: 'open' | 'completed';
+  kitchenPrintedCount?: number;
   paymentSplits?: SalePayment[];
   saleDate: Date;
   actorId?: string;
@@ -168,6 +173,9 @@ export interface Setting {
   shopLogo: string | null;
   currency: string;
   cardDiscountPercentage: number;
+  receiptWidth?: number;
+  receiptFontSize?: number;
+  receiptPadding?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -387,7 +395,8 @@ export interface Deal {
   categoryId: string;
   image?: string;
   price: number;
-  items: { productId: string; quantity: number }[];
+  customDiscountedPrice?: number;
+  items: { productId: string; quantity: number; variantName?: string }[];
   isFeatured: boolean;
   createdAt: Date;
   updatedAt: Date;

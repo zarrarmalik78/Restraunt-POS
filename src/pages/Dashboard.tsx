@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, Activity, Database, RefreshCw, Banknote, Trendi
 import { useLiveTable } from '../db/hooks';
 import { formatCurrency, cn } from '../lib/utils';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 const Dashboard: React.FC = () => {
   const { documents: sales, loading: salesLoading } = useLiveTable('sales');

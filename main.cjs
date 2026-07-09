@@ -18,8 +18,11 @@ function checkLicense() {
 
 // Start the local database server
 function startServer() {
-  const serverPath = path.join(__dirname, 'server/index.js');
   const isDev = !app.isPackaged;
+  let serverPath = path.join(__dirname, 'server/index.cjs');
+  if (!isDev) {
+    serverPath = serverPath.replace('app.asar', 'app.asar.unpacked');
+  }
   let dataDir = isDev ? path.join(__dirname, 'data') : app.getPath('userData');
 
   if (!isDev) {

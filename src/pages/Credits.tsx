@@ -1,212 +1,120 @@
-import React, { useState, useMemo } from 'react';
-import { CreditCard, Search, Plus, Calendar, User, ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { useLiveTable } from '../db/hooks';
-import { formatCurrency, cn } from '../lib/utils';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import ReportToolbar from '../components/ui/ReportToolbar';
-import ReportHeader from '../components/ui/ReportHeader';
-
-const creditsSortFn = (a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime();
+import React from 'react';
+import { ShieldCheck, Info, User, Phone, Globe, Building, Sparkles } from 'lucide-react';
 
 const Credits: React.FC = () => {
-  const { documents: credits, loading: creditsLoading } = useLiveTable('credits', undefined, creditsSortFn);
-  const { documents: customers, loading: customersLoading } = useLiveTable('customers');
-  const { documents: vendors, loading: vendorsLoading } = useLiveTable('vendors');
-  
-  const allContacts = useMemo(() => {
-    const custs = customers.map(c => ({ ...c, type: 'customer' }));
-    const vends = vendors.map(v => ({ ...v, type: 'vendor' }));
-    return [...custs, ...vends];
-  }, [customers, vendors]);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-
-  const filteredCredits = useMemo(() => {
-    return credits.filter((c: any) => {
-      const contact = allContacts.find((cust: any) => cust.id === c.customerId);
-      const creditDate = new Date(c.createdAt).toISOString().split('T')[0];
-      
-      const matchesSearch = contact?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           c.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesDate = creditDate >= startDate && creditDate <= endDate;
-      
-      return matchesSearch && matchesDate;
-    });
-  }, [credits, allContacts, searchTerm, startDate, endDate]);
-
-  const handlePrint = () => window.print();
-
-  if (creditsLoading || customersLoading || vendorsLoading) return <LoadingSpinner />;
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center text-white shadow-lg shadow-violet-600/20">
-            <CreditCard size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Credit History</h1>
-            <p className="text-slate-500 text-sm">View all customer credit and payment transactions</p>
-          </div>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-12 text-slate-900">
+      {/* Header */}
+      <header className="flex items-center gap-4 glass-card p-6">
+        <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center text-white shadow-lg shadow-violet-600/20">
+          <ShieldCheck size={24} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            System Information & Support <Sparkles className="text-amber-500 fill-amber-500" size={18} />
+          </h1>
+          <p className="text-slate-500 text-sm">Software details, licensing agreements, and developer support channels</p>
         </div>
       </header>
-      <ReportHeader title="Credit & Payments Report" subtitle={`From ${startDate} to ${endDate}`} />
 
-      <ReportToolbar 
-        title="Credit Logs"
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onPrint={handlePrint}
-      />
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        {/* Support & Developer Details */}
+        <div className="glass-card p-8 space-y-6">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+            <User size={20} className="text-violet-600" /> Developer Support
+          </h2>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            This POS system is custom-built and optimized for fast-paced retail and restaurant environments. For technical support, custom feature requests, or queries, please feel free to reach out.
+          </p>
 
-      <div className="glass-card p-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by customer name or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all shadow-sm"
-          />
-        </div>
-      </div>
+          <div className="h-px bg-slate-100 w-full my-2"></div>
 
-      <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredCredits.map((credit: any) => {
-                const contact = allContacts.find((c: any) => c.id === credit.customerId);
-                return (
-                  <tr key={credit.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Calendar size={14} className="text-slate-400" />
-                        {new Date(credit.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs",
-                          contact?.type === 'vendor' ? "bg-emerald-100 text-emerald-600" : "bg-violet-100 text-violet-600"
-                        )}>
-                          {contact?.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <span className={cn(
-                          "font-bold",
-                          contact?.type === 'vendor' ? "text-emerald-700" : "text-slate-900"
-                        )}>
-                          {contact?.name || 'Unknown'}
-                        </span>
-                          {contact?.type === 'vendor' && <span className="ml-2 text-[8px] font-black uppercase text-emerald-600 bg-emerald-50 px-1 rounded">Vendor</span>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const isVendor = contact?.type === 'vendor';
-                        const isTaken = credit.transactionType === 'taken';
-                        
-                        let badgeClass = "";
-                        let icon = null;
-                        let typeLabel = "";
-                        
-                        if (isVendor) {
-                          if (isTaken) {
-                            badgeClass = "bg-rose-100 text-rose-600";
-                            icon = <ArrowDownRight size={12} />;
-                            typeLabel = "Taken";
-                          } else {
-                            badgeClass = "bg-emerald-100 text-emerald-600";
-                            icon = <ArrowUpRight size={12} />;
-                            typeLabel = "Payment";
-                          }
-                        } else {
-                          if (!isTaken) { // given
-                            badgeClass = "bg-amber-100 text-amber-600";
-                            icon = <ArrowUpRight size={12} />;
-                            typeLabel = "Given";
-                          } else { // taken
-                            badgeClass = "bg-emerald-100 text-emerald-600";
-                            icon = <ArrowDownRight size={12} />;
-                            typeLabel = "Payment";
-                          }
-                        }
-                        return (
-                          <span className={cn(
-                            "font-bold text-[10px] uppercase tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1 w-fit",
-                            badgeClass
-                          )}>
-                            {icon}
-                            {typeLabel}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const isVendor = contact?.type === 'vendor';
-                        const isTaken = credit.transactionType === 'taken';
-                        
-                        let sign = "";
-                        let amountClass = "";
-                        
-                        if (isVendor) {
-                          if (isTaken) {
-                            sign = "-";
-                            amountClass = "text-rose-600";
-                          } else {
-                            sign = "+";
-                            amountClass = "text-emerald-600";
-                          }
-                        } else {
-                          if (!isTaken) {
-                            sign = "+";
-                            amountClass = "text-amber-600";
-                          } else {
-                            sign = "-";
-                            amountClass = "text-emerald-600";
-                          }
-                        }
-                        return (
-                          <span className={cn(
-                            "font-bold text-sm",
-                            amountClass
-                          )}>
-                            {sign}{formatCurrency(credit.amount)}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{credit.notes || '-'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filteredCredits.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-slate-400 font-medium">No credit history found.</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
+                <Building size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Company</p>
+                <p className="text-sm font-bold text-slate-800">Zyntrum Tech</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                <User size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead Developer</p>
+                <p className="text-sm font-bold text-slate-800">Zarar Malik</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <Phone size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contact Number</p>
+                <a href="tel:03259914121" className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors">03259914121</a>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <Globe size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Website</p>
+                <a href="https://zararmalik.online" target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-violet-600 hover:underline">
+                  zararmalik.online
+                </a>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Software & Environment Details */}
+        <div className="glass-card p-8 space-y-6 flex flex-col justify-between">
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+              <Info size={20} className="text-violet-600" /> Application Details
+            </h2>
+            
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Software Name</span>
+                <span className="text-sm font-black text-slate-800">Pizza Hut POS</span>
+              </div>
+              <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Build Version</span>
+                <span className="text-sm font-bold text-slate-700">v1.0.0 (Stable)</span>
+              </div>
+              <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Database Engine</span>
+                <span className="text-sm font-bold text-slate-700">SQLite3 (Encrypted Local Storage)</span>
+              </div>
+              <div className="flex justify-between items-center py-2.5 border-b border-slate-100">
+                <span className="text-xs font-bold text-slate-500">Platform</span>
+                <span className="text-sm font-bold text-slate-700">Electron Native Desktop Wrapper</span>
+              </div>
+              <div className="flex justify-between items-center py-2.5">
+                <span className="text-xs font-bold text-slate-500">License Type</span>
+                <span className="text-xs font-black px-2.5 py-1 bg-violet-100 text-violet-700 rounded-lg">Single-Device OEM</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-950 text-white rounded-2xl border border-white/5 relative overflow-hidden mt-6">
+            <p className="text-xs font-semibold text-slate-400 mb-1 leading-relaxed">
+              &copy; {new Date().getFullYear()} Zyntrum Tech. All rights reserved. Registered trademark of Zyntrum Tech. Unauthorized reproduction or distribution is strictly prohibited under local copyright laws.
+            </p>
+            <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-violet-600/10 rounded-full blur-2xl"></div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

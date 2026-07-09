@@ -14,6 +14,7 @@ import {
   FileText,
   ClipboardList,
   Settings,
+  Info,
   LogOut,
   Menu,
   X,
@@ -246,6 +247,23 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed: propCollapsed, onToggleCol
               {!collapsed && <span className="text-sm font-bold uppercase tracking-wider">Settings</span>}
             </NavLink>
           )}
+
+          <NavLink
+            to="/credits"
+            className={({ isActive }) => cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+              isActive
+                ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            )}
+            onClick={() => setMobileOpen(false)}
+          >
+            <Info size={20} className={cn(
+              "min-w-[20px]",
+              collapsed ? "mx-auto" : ""
+            )} />
+            {!collapsed && <span className="text-sm font-bold uppercase tracking-wider">Support</span>}
+          </NavLink>
 
           <button
             onClick={handleLogout}

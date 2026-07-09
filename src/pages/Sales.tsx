@@ -27,6 +27,9 @@ const Sales: React.FC = () => {
 
   const filteredSales = useMemo(() => {
     return sales.filter((s: any) => {
+      // Exclude open dine-in orders (they appear in POS open tables panel)
+      if (s.status === 'open') return false;
+
       const customer = customers.find((c: any) => c.id === s.customerId);
       const customerName = customer?.name || 'Walk-in';
       const saleDate = new Date(s.saleDate).toISOString().split('T')[0];
@@ -316,8 +319,33 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
   const subtotal = sale.items.reduce((acc: number, item: any) => acc + (item.totalPrice || 0), 0);
   const discount = subtotal - sale.totalAmount;
 
+  const printWidth = settings?.receiptWidth || 80;
+  const printFontSize = settings?.receiptFontSize || 12;
+  const printPadding = settings?.receiptPadding || 10;
+
+  const dynamicPrintStyle = `
+    @media print {
+      @page {
+        margin: 0;
+        size: ${printWidth}mm 210mm;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .thermal-receipt {
+        width: ${printWidth}mm !important;
+        max-width: ${printWidth}mm !important;
+        padding: ${printPadding}px !important;
+        font-size: ${printFontSize}px !important;
+        margin: 0 !important;
+      }
+    }
+  `;
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-white print:block overflow-y-auto">
+      <style dangerouslySetInnerHTML={{ __html: dynamicPrintStyle }} />
       
       {/* Container for centering modal actions but allowing the receipt to be printed properly */}
       <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full">
@@ -333,7 +361,10 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
         </div>
 
         {/* 80mm Thermal Receipt Simulation (approx 300px max width) */}
-        <div className="bg-white text-black w-full max-w-[320px] shadow-2xl p-6 font-mono text-xs print:shadow-none print:w-[80mm] print:max-w-[80mm] print:p-0 print:m-0 mx-auto">
+        <div 
+          style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
+          className="bg-white text-black w-full shadow-2xl font-mono font-bold print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt"
+        >
           
           {/* Header */}
           <div className="text-center mb-4">

@@ -1,0 +1,12 @@
+{
+  "name": "pizzahut-pos-server",
+  "version": "1.0.0",
+  "description": "Pizza Hut POS local backend server",
+  "private": true,
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
+    "cors": "^2.8.6",
+    "express": "^4.21.2"
+  }
+}
