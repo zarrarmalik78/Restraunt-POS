@@ -350,19 +350,15 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
         font-size: ${printFontSize}px !important;
         margin: 0 !important;
       }
-      .page-break {
-        page-break-before: always;
-        break-before: page;
-      }
     }
   `;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-white print:block overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-transparent print:static print:h-auto print:overflow-visible overflow-y-auto">
       <style dangerouslySetInnerHTML={{ __html: dynamicPrintStyle }} />
       
       {/* Container for centering modal actions but allowing the receipt to be printed properly */}
-      <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full">
+      <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full print:block print:w-auto">
         
         {/* Actions (Hidden on Print) */}
         <div className="flex items-center gap-3 print:hidden">
@@ -478,13 +474,18 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
 
         </div>
 
-        {/* Optional Kitchen Receipt for Takeaway/Delivery - Printed on a new page */}
+        {/* Optional Kitchen Receipt for Takeaway/Delivery */}
         {(sale.orderType === 'take_away' || sale.orderType === 'delivery') && (
           <div 
             style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
-            className="bg-white text-black w-full shadow-2xl font-sans print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt page-break hidden print:block"
+            className="bg-white text-black w-full shadow-2xl font-sans print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt hidden print:block"
           >
-            <div className="border-b-2 border-black pb-3 mb-3 text-center">
+            {/* Visual Tear Line */}
+            <div className="border-t-[3px] border-dashed border-black my-8 relative text-center">
+              <span className="bg-white px-2 text-xl absolute -top-[14px] left-1/2 -translate-x-1/2">✂️</span>
+            </div>
+            
+            <div className="border-b-2 border-black pb-3 mb-3 text-center mt-8">
               <h2 className="text-xl font-black tracking-wider uppercase mb-1">Kitchen Order</h2>
               <div className="flex justify-between text-xs font-bold mb-0.5"><span>Order:</span> <span>#{sale.id?.toString().padStart(4, '0')}</span></div>
               <div className="flex justify-between text-xs font-bold mb-0.5"><span>Type:</span> <span className="uppercase">{sale.orderType.replace('_', ' ')}</span></div>
