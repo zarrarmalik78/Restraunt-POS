@@ -384,7 +384,7 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
   const handlePrintAll = React.useCallback(() => {
     // First print customer receipt, then after a short delay open kitchen receipt window
     window.print();
-    if (sale.orderType === 'take_away' || sale.orderType === 'delivery') {
+    if (sale.orderType !== 'dine_in') {
       if (settings?.printKitchenReceiptTakeawayDelivery) {
         setTimeout(() => {
           printKitchenReceipt();
