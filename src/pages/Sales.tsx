@@ -308,7 +308,7 @@ const Sales: React.FC = () => {
   );
 };
 
-export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => void, onSaleUpdated?: () => void }> = ({ sale, customer, onClose, onSaleUpdated }) => {
+export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => void, autoPrint?: boolean, onSaleUpdated?: () => void }> = ({ sale, customer, onClose, autoPrint, onSaleUpdated }) => {
   const { shopId } = useAuth();
   const { document: settings } = useLiveDocument('settings', shopId || 'default_shop');
   
@@ -322,6 +322,16 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
   const printWidth = settings?.receiptWidth || 80;
   const printFontSize = settings?.receiptFontSize || 12;
   const printPadding = settings?.receiptPadding || 10;
+
+  React.useEffect(() => {
+    if (autoPrint) {
+      // Small timeout to ensure rendering is complete before print dialog opens
+      const timer = setTimeout(() => {
+        window.print();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint]);
 
   const dynamicPrintStyle = `
     @media print {
@@ -339,6 +349,10 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
         padding: ${printPadding}px !important;
         font-size: ${printFontSize}px !important;
         margin: 0 !important;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
       }
     }
   `;
@@ -463,6 +477,44 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
           </div>
 
         </div>
+
+        {/* Optional Kitchen Receipt for Takeaway/Delivery - Printed on a new page */}
+        {(sale.orderType === 'takeaway' || sale.orderType === 'delivery') && (
+          <div 
+            style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
+            className="bg-white text-black w-full shadow-2xl font-sans print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt page-break hidden print:block"
+          >
+            <div className="border-b-2 border-black pb-3 mb-3 text-center">
+              <h2 className="text-xl font-black tracking-wider uppercase mb-1">Kitchen Order</h2>
+              <div className="flex justify-between text-xs font-bold mb-0.5"><span>Order:</span> <span>#{sale.id?.toString().padStart(4, '0')}</span></div>
+              <div className="flex justify-between text-xs font-bold mb-0.5"><span>Type:</span> <span className="uppercase">{sale.orderType.replace('_', ' ')}</span></div>
+              <div className="flex justify-between text-xs font-bold"><span>Time:</span> <span>{new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+            </div>
+            <table className="w-full text-left">
+              <thead>
+                <tr>
+                  <th className="border-b border-black pb-1 text-xs uppercase font-bold text-gray-700">Qty</th>
+                  <th className="border-b border-black pb-1 text-xs uppercase font-bold text-gray-700">Item</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sale.items?.map((item: any, idx: number) => (
+                  <tr key={idx} className="border-b border-dashed border-gray-400">
+                    <td className="py-2 text-lg font-black align-top w-10">{item.quantity}x</td>
+                    <td className="py-2 text-sm font-bold align-top">
+                      {item.productName}
+                      {item.kitchenNote && <div className="block mt-1 text-xs font-bold bg-gray-200 px-2 py-1 border-l-2 border-black text-gray-800">{item.kitchenNote}</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="text-center mt-5 pt-3 border-t-2 border-black text-xs font-bold uppercase tracking-widest">
+              — Prepare Immediately —
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

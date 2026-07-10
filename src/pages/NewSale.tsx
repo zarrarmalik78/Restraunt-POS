@@ -1266,6 +1266,7 @@ const NewSale: React.FC = () => {
           sale={completedSale}
           customer={customers.find((c: any) => c.id === completedSale.customerId) || null}
           onClose={() => setCompletedSale(null)}
+          autoPrint={true}
         />
       )}
 

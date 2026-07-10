@@ -59,13 +59,13 @@ Set shell2 = CreateObject("WScript.Shell")
 
 On Error Resume Next
 Err.Clear
-' Try MS Edge (built into Windows 10/11) in App Mode with silent printing enabled
-shell2.Run "msedge --kiosk-printing --app=" & url, 1, False
+' Try MS Edge (built into Windows 10/11) in App Mode
+shell2.Run "msedge --app=" & url, 1, False
 
 If Err.Number <> 0 Then
   Err.Clear
-  ' Try Google Chrome in App Mode with silent printing enabled
-  shell2.Run "chrome --kiosk-printing --app=" & url, 1, False
+  ' Try Google Chrome in App Mode
+  shell2.Run "chrome --app=" & url, 1, False
   
   If Err.Number <> 0 Then
     Err.Clear
