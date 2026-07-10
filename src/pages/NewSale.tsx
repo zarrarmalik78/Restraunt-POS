@@ -41,7 +41,7 @@ const KitchenReceiptModal: React.FC<{
     win.document.write(`
       <html><head><title>Kitchen Receipt</title>
       <style>
-        @page { margin: 0; size: ${width}mm 210mm; }
+        @page { margin: 0; size: ${width}mm auto; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
         .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         h2 { font-size: 1.8em; font-weight: 900; margin: 0 0 5px; text-transform: uppercase; letter-spacing: 1px; }

@@ -323,21 +323,75 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
   const printFontSize = settings?.receiptFontSize || 12;
   const printPadding = settings?.receiptPadding || 10;
 
-  React.useEffect(() => {
-    if (autoPrint) {
-      // Small timeout to ensure rendering is complete before print dialog opens
-      const timer = setTimeout(() => {
-        window.print();
-      }, 100);
-      return () => clearTimeout(timer);
+  const printKitchenReceipt = React.useCallback(() => {
+    const width = printWidth;
+    const fontSize = printFontSize;
+    const padding = printPadding;
+    const itemsHtml = sale.items?.map((item: any) => {
+      const dealSubItems = item.dealItems?.length > 0
+        ? `<div class="deal-sub">${item.dealItems.map((di: any) => `<div>• ${di.quantity}x ${di.productName}</div>`).join('')}</div>`
+        : '';
+      const noteHtml = item.kitchenNote
+        ? `<div class="note">${item.kitchenNote}</div>`
+        : '';
+      return `<tr><td class="qty">${item.quantity}x</td><td class="item">${item.productName}${dealSubItems}${noteHtml}</td></tr>`;
+    }).join('');
+
+    const orderType = sale.orderType?.replace('_', ' ').toUpperCase() || '';
+    const orderId = '#' + (sale.id?.toString().padStart(4, '0') || '0000');
+    const time = new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const win = window.open('', '_blank', 'width=400,height=600');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>Kitchen Receipt</title>
+      <style>
+        @page { margin: 0; size: ${width}mm auto; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
+        .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        h2 { font-size: 1.8em; font-weight: 900; margin: 0 0 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .meta { font-size: 1.1em; font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { border-bottom: 1px solid #000; padding-bottom: 5px; text-align: left; font-size: 0.9em; text-transform: uppercase; color: #555; }
+        td { padding: 8px 0; border-bottom: 1px dashed #ccc; }
+        .qty { font-weight: 900; font-size: 1.5em; width: 40px; vertical-align: top; }
+        .item { font-weight: 700; font-size: 1.25em; line-height: 1.2; }
+        .deal-sub { padding-left: 10px; font-size: 0.85em; font-weight: 600; color: #333; margin-top: 4px; }
+        .note { font-size: 1em; font-weight: 700; color: #444; margin-top: 4px; background: #f0f0f0; padding: 4px 6px; border-left: 3px solid #000; display: inline-block; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.9em; font-weight: 700; border-top: 2px solid #000; padding-top: 10px; }
+      </style></head>
+      <body onload="window.print()" onafterprint="window.close()">
+        <div class="header">
+          <h2>Kitchen Order</h2>
+          <div class="meta"><span>Order:</span><span>${orderId}</span></div>
+          <div class="meta"><span>Type:</span><span>${orderType}</span></div>
+          <div class="meta"><span>Time:</span><span>${time}</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Qty</th><th>Item</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <div class="footer">— Prepare Immediately —</div>
+      </body></html>
+    `);
+    win.document.close();
+  }, [sale, printWidth, printFontSize, printPadding]);
+
+  const handlePrintAll = React.useCallback(() => {
+    // First print customer receipt, then after a short delay open kitchen receipt window
+    window.print();
+    if (sale.orderType === 'take_away' || sale.orderType === 'delivery') {
+      setTimeout(() => {
+        printKitchenReceipt();
+      }, 500);
     }
-  }, [autoPrint]);
+  }, [sale.orderType, printKitchenReceipt]);
 
   const dynamicPrintStyle = `
     @media print {
       @page {
         margin: 0;
-        size: ${printWidth}mm 210mm;
+        size: ${printWidth}mm auto;
       }
       body {
         margin: 0;
@@ -353,16 +407,25 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
     }
   `;
 
+  React.useEffect(() => {
+    if (autoPrint) {
+      const timer = setTimeout(() => {
+        handlePrintAll();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint, handlePrintAll]);
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-transparent print:static print:h-auto print:overflow-visible overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-white print:block overflow-y-auto">
       <style dangerouslySetInnerHTML={{ __html: dynamicPrintStyle }} />
       
       {/* Container for centering modal actions but allowing the receipt to be printed properly */}
-      <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full print:block print:w-auto">
+      <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full">
         
         {/* Actions (Hidden on Print) */}
         <div className="flex items-center gap-3 print:hidden">
-          <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full font-bold shadow-lg shadow-violet-600/20 active:scale-95 transition-all">
+          <button onClick={handlePrintAll} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full font-bold shadow-lg shadow-violet-600/20 active:scale-95 transition-all">
             <Printer size={18} /> Print Receipt
           </button>
           <button onClick={onClose} className="w-12 h-12 bg-white text-slate-600 rounded-full flex items-center justify-center font-bold shadow-lg hover:bg-slate-50 transition-all">
@@ -473,55 +536,6 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
           </div>
 
         </div>
-
-        {/* Optional Kitchen Receipt for Takeaway/Delivery */}
-        {(sale.orderType === 'take_away' || sale.orderType === 'delivery') && (
-          <div 
-            style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
-            className="bg-white text-black w-full shadow-2xl font-sans print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt hidden print:block"
-          >
-            {/* Visual Tear Line */}
-            <div className="border-t-[3px] border-dashed border-black my-8 relative text-center">
-              <span className="bg-white px-2 text-xl absolute -top-[14px] left-1/2 -translate-x-1/2">✂️</span>
-            </div>
-            
-            <div className="border-b-2 border-black pb-3 mb-3 text-center mt-8">
-              <h2 className="text-xl font-black tracking-wider uppercase mb-1">Kitchen Order</h2>
-              <div className="flex justify-between text-xs font-bold mb-0.5"><span>Order:</span> <span>#{sale.id?.toString().padStart(4, '0')}</span></div>
-              <div className="flex justify-between text-xs font-bold mb-0.5"><span>Type:</span> <span className="uppercase">{sale.orderType.replace('_', ' ')}</span></div>
-              <div className="flex justify-between text-xs font-bold"><span>Time:</span> <span>{new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-            </div>
-            <table className="w-full text-left">
-              <thead>
-                <tr>
-                  <th className="border-b border-black pb-1 text-xs uppercase font-bold text-gray-700">Qty</th>
-                  <th className="border-b border-black pb-1 text-xs uppercase font-bold text-gray-700">Item</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sale.items?.map((item: any, idx: number) => (
-                  <tr key={idx} className="border-b border-dashed border-gray-400">
-                    <td className="py-2 text-lg font-black align-top w-10">{item.quantity}x</td>
-                    <td className="py-2 text-sm font-bold align-top">
-                      {item.productName}
-                      {item.dealItems && item.dealItems.length > 0 && (
-                        <div className="pl-3 mt-1 font-semibold text-xs text-gray-600">
-                          {item.dealItems.map((di: any, idx2: number) => (
-                            <div key={idx2}>• {di.quantity}x {di.productName}</div>
-                          ))}
-                        </div>
-                      )}
-                      {item.kitchenNote && <div className="block mt-1 text-xs font-bold bg-gray-200 px-2 py-1 border-l-2 border-black text-gray-800">{item.kitchenNote}</div>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="text-center mt-5 pt-3 border-t-2 border-black text-xs font-bold uppercase tracking-widest">
-              — Prepare Immediately —
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
