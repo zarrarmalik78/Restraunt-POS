@@ -479,7 +479,7 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
         </div>
 
         {/* Optional Kitchen Receipt for Takeaway/Delivery - Printed on a new page */}
-        {(sale.orderType === 'takeaway' || sale.orderType === 'delivery') && (
+        {(sale.orderType === 'take_away' || sale.orderType === 'delivery') && (
           <div 
             style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
             className="bg-white text-black w-full shadow-2xl font-sans print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt page-break hidden print:block"
@@ -503,6 +503,13 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
                     <td className="py-2 text-lg font-black align-top w-10">{item.quantity}x</td>
                     <td className="py-2 text-sm font-bold align-top">
                       {item.productName}
+                      {item.dealItems && item.dealItems.length > 0 && (
+                        <div className="pl-3 mt-1 font-semibold text-xs text-gray-600">
+                          {item.dealItems.map((di: any, idx2: number) => (
+                            <div key={idx2}>• {di.quantity}x {di.productName}</div>
+                          ))}
+                        </div>
+                      )}
                       {item.kitchenNote && <div className="block mt-1 text-xs font-bold bg-gray-200 px-2 py-1 border-l-2 border-black text-gray-800">{item.kitchenNote}</div>}
                     </td>
                   </tr>

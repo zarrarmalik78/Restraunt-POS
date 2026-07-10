@@ -62,7 +62,7 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
         <Router>
-          <Toaster position="top-right" toastOptions={{
+          <Toaster position="top-right" containerClassName="print:hidden" toastOptions={{
             style: {
               background: '#fff',
               color: '#1e293b',

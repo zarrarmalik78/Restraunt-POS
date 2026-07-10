@@ -41,9 +41,8 @@ const KitchenReceiptModal: React.FC<{
     win.document.write(`
       <html><head><title>Kitchen Receipt</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         @page { margin: 0; size: ${width}mm 210mm; }
-        body { font-family: 'Inter', sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
         .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         h2 { font-size: 1.8em; font-weight: 900; margin: 0 0 5px; text-transform: uppercase; letter-spacing: 1px; }
         .meta { font-size: 1.1em; font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 3px; }
@@ -53,6 +52,7 @@ const KitchenReceiptModal: React.FC<{
         .qty { font-weight: 900; font-size: 1.5em; width: 40px; vertical-align: top; }
         .item { font-weight: 700; font-size: 1.25em; line-height: 1.2; }
         .note { font-size: 1em; font-weight: 700; color: #444; margin-top: 4px; background: #f0f0f0; padding: 4px 6px; border-left: 3px solid #000; display: inline-block; }
+        .deal-sub { padding-left: 10px; font-size: 0.85em; font-weight: 600; color: #333; margin-top: 4px; }
         .footer { text-align: center; margin-top: 20px; font-size: 0.9em; font-weight: 700; border-top: 2px solid #000; padding-top: 10px; }
       </style></head>
       <body onload="window.print()" onafterprint="window.close()">${printContent}</body></html>
@@ -99,6 +99,13 @@ const KitchenReceiptModal: React.FC<{
                   <td className="qty py-2 text-lg font-black align-top w-10">{item.quantity}x</td>
                   <td className="item py-2 text-sm font-bold align-top">
                     {item.productName}
+                    {item.dealItems && item.dealItems.length > 0 && (
+                      <div className="deal-sub block mt-1">
+                        {item.dealItems.map((di: any, idx: number) => (
+                          <div key={idx}>• {di.quantity}x {di.productName}</div>
+                        ))}
+                      </div>
+                    )}
                     {item.kitchenNote && <div className="note block mt-1 text-xs font-bold bg-slate-200 px-2 py-1 border-l-2 border-slate-800 text-slate-700">{item.kitchenNote}</div>}
                   </td>
                 </tr>
@@ -455,6 +462,16 @@ const NewSale: React.FC = () => {
       newCart[existingIndex].quantity += 1;
       setCart(newCart);
     } else {
+      const dealItems = isDeal ? item.items?.map((di: any) => {
+        const prod = products.find((p: any) => p.id === di.productId);
+        return {
+          productId: di.productId,
+          productName: prod ? prod.name : 'Unknown Item',
+          quantity: di.quantity,
+          variantName: di.variantName
+        };
+      }) : undefined;
+
       setCart([...cart, {
         id: Math.random().toString(36).substr(2, 9),
         productId: item.id,
@@ -463,7 +480,8 @@ const NewSale: React.FC = () => {
         quantity: 1,
         variantName: variant?.name,
         isDeal,
-        categoryId: item.categoryId
+        categoryId: item.categoryId,
+        dealItems
       }]);
     }
   };
@@ -540,7 +558,8 @@ const NewSale: React.FC = () => {
       kitchenNote: item.kitchenNote,
       variantName: item.variantName,
       isDeal: item.isDeal,
-      customDiscountedPrice: item.customDiscountedPrice
+      customDiscountedPrice: item.customDiscountedPrice,
+      dealItems: item.dealItems
     };
   });
 
