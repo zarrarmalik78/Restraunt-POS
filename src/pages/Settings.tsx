@@ -262,6 +262,24 @@ const Settings: React.FC = () => {
                     <p className="text-[10px] text-slate-400 font-medium">Inner padding on left/right sides</p>
                   </div>
                 </div>
+                <div className="mt-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div className="relative">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only" 
+                        checked={formData.printKitchenReceiptTakeawayDelivery || false} 
+                        onChange={(e) => setFormData({ ...formData, printKitchenReceiptTakeawayDelivery: e.target.checked })} 
+                      />
+                      <div className={`block w-14 h-8 rounded-full transition-colors ${formData.printKitchenReceiptTakeawayDelivery ? 'bg-violet-600' : 'bg-slate-300'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${formData.printKitchenReceiptTakeawayDelivery ? 'translate-x-6' : ''}`}></div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Auto-Print Kitchen Receipt (Takeaway / Delivery)</p>
+                      <p className="text-xs text-slate-500 font-medium">If enabled, a separate print window will open for the kitchen receipt after the customer receipt.</p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           )}

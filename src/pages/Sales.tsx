@@ -341,7 +341,11 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
     const orderId = '#' + (sale.id?.toString().padStart(4, '0') || '0000');
     const time = new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const win = window.open('', '_blank', 'width=400,height=600');
+    const winWidth = 600;
+    const winHeight = 800;
+    const left = (window.screen.width / 2) - (winWidth / 2);
+    const top = (window.screen.height / 2) - (winHeight / 2);
+    const win = window.open('', '_blank', `width=${winWidth},height=${winHeight},top=${top},left=${left}`);
     if (!win) return;
     win.document.write(`
       <html><head><title>Kitchen Receipt</title>
@@ -381,11 +385,13 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
     // First print customer receipt, then after a short delay open kitchen receipt window
     window.print();
     if (sale.orderType === 'take_away' || sale.orderType === 'delivery') {
-      setTimeout(() => {
-        printKitchenReceipt();
-      }, 500);
+      if (settings?.printKitchenReceiptTakeawayDelivery) {
+        setTimeout(() => {
+          printKitchenReceipt();
+        }, 500);
+      }
     }
-  }, [sale.orderType, printKitchenReceipt]);
+  }, [sale.orderType, printKitchenReceipt, settings?.printKitchenReceiptTakeawayDelivery]);
 
   const dynamicPrintStyle = `
     @media print {
