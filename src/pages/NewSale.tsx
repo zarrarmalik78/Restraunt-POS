@@ -655,6 +655,7 @@ const NewSale: React.FC = () => {
 
       setShowCheckoutModal(false);
       setCompletedSale(completedSaleData);
+      toast.dismiss(toastId);
       clearOrder();
     } catch (error: any) {
       toast.error(error.message || 'Failed to complete order', { id: toastId });
@@ -691,6 +692,7 @@ const NewSale: React.FC = () => {
       setCart([]);
       setSelectedCustomerId(null);
       setIsMembershipApplied(false);
+      toast.dismiss(toastId);
       setCompletedSale({ ...saleData, id: saleId });
     } catch (error: any) {
       toast.error(error.message || 'Failed to complete order', { id: toastId });
