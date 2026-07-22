@@ -94,6 +94,8 @@ export interface Sale {
   shopId: string;
   sessionId?: string;
   customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
   items: SaleItem[];
   totalAmount: number;
   totalCOGS: number;

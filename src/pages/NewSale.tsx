@@ -321,6 +321,8 @@ const NewSale: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [isMembershipApplied, setIsMembershipApplied] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
 
   // Dine-In open order state
   const [activeOpenOrder, setActiveOpenOrder] = useState<any | null>(null);
@@ -370,6 +372,8 @@ const NewSale: React.FC = () => {
     setOrderType('dine_in');
     setTableNumber(order.tableNumber || '');
     setSelectedCustomerId(order.customerId || null);
+    setCustomerName(order.customerName || '');
+    setCustomerPhone(order.customerPhone || '');
     setShowOpenOrders(false);
     toast.success(`Loaded Table ${order.tableNumber || 'N/A'}`);
   };
@@ -380,6 +384,8 @@ const NewSale: React.FC = () => {
     setActiveOpenOrder(null);
     setTableNumber('');
     setSelectedCustomerId(null);
+    setCustomerName('');
+    setCustomerPhone('');
     setIsMembershipApplied(false);
   };
 
@@ -388,6 +394,10 @@ const NewSale: React.FC = () => {
     if (customerId) {
       const member = customers.find((c: any) => c.id === customerId);
       setIsMembershipApplied(!!(member && member.cardNumber));
+      if (member) {
+        if (!customerName) setCustomerName(member.name || '');
+        if (!customerPhone) setCustomerPhone(member.phone || '');
+      }
     } else {
       setIsMembershipApplied(false);
     }
@@ -581,6 +591,8 @@ const NewSale: React.FC = () => {
         const saleData: any = {
           shopId: shopId!,
           customerId: selectedCustomerId || undefined,
+          customerName: customerName.trim() || undefined,
+          customerPhone: customerPhone.trim() || undefined,
           items: saleItems,
           totalAmount: subtotal,
           totalCOGS: 0,
@@ -624,6 +636,8 @@ const NewSale: React.FC = () => {
         paymentMethod: selectedPaymentMethod,
         status: 'completed',
         customerId: selectedCustomerId || undefined,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
         updatedAt: new Date(),
       } as any);
 
@@ -635,6 +649,8 @@ const NewSale: React.FC = () => {
         status: 'completed',
         tableNumber,
         customerId: selectedCustomerId || undefined,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
       };
 
       setShowCheckoutModal(false);
@@ -656,6 +672,8 @@ const NewSale: React.FC = () => {
       const saleData: any = {
         shopId: shopId!,
         customerId: selectedCustomerId || undefined,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
         items: saleItems,
         totalAmount,
         totalCOGS: 0,
@@ -674,6 +692,8 @@ const NewSale: React.FC = () => {
       const saleId = (await db.sales.add(saleData)).id;
       setCart([]);
       setSelectedCustomerId(null);
+      setCustomerName('');
+      setCustomerPhone('');
       setIsMembershipApplied(false);
       setCompletedSale({ ...saleData, id: saleId });
     } catch (error: any) {
@@ -1003,6 +1023,36 @@ const NewSale: React.FC = () => {
                 onChange={(e) => setTableNumber(e.target.value)}
                 className="w-full bg-slate-100/50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
               />
+            </div>
+          )}
+
+          {/* Customer Details for Delivery & Takeaway (Optional) */}
+          {(orderType === 'delivery' || orderType === 'take_away') && (
+            <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300 pt-1">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
+                  Customer Name <span className="text-slate-300 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. John"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-slate-100/50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
+                  Phone Number <span className="text-slate-300 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 03001234567"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full bg-slate-100/50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20"
+                />
+              </div>
             </div>
           )}
         </div>

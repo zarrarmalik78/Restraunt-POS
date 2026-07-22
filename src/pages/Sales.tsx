@@ -502,6 +502,11 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
         ${customer.cardNumber ? `<div>CARD NO: ${customer.cardNumber}</div>` : ''}
         ${customer.phone ? `<div>PHONE: ${customer.phone}</div>` : ''}
       </div>
+    ` : (sale.customerName || sale.customerPhone) ? `
+      <div style="border-top:1px dashed #999; margin:8px 0; padding-top:8px; font-size:0.9em; text-transform:uppercase;">
+        ${sale.customerName ? `<div style="font-weight:700;">CUSTOMER: ${sale.customerName}</div>` : ''}
+        ${sale.customerPhone ? `<div>PHONE: ${sale.customerPhone}</div>` : ''}
+      </div>
     ` : '';
 
     const discountHTML = discount > 0.01 ? `
@@ -680,13 +685,18 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
                 <p>CASHIER: {sale.actorName?.split(' ')[0]}</p>
               </div>
             </div>
-            {customer && (
+            {customer ? (
               <div className="mt-2 text-[10px] text-left uppercase border-t border-dashed border-black/20 pt-2">
                 <p className="font-bold">MEMBER: {customer.name}</p>
                 {customer.cardNumber && <p>CARD NO: {customer.cardNumber}</p>}
                 {customer.phone && <p>PHONE: {customer.phone}</p>}
               </div>
-            )}
+            ) : (sale.customerName || sale.customerPhone) ? (
+              <div className="mt-2 text-[10px] text-left uppercase border-t border-dashed border-black/20 pt-2">
+                {sale.customerName && <p className="font-bold">CUSTOMER: {sale.customerName}</p>}
+                {sale.customerPhone && <p>PHONE: {sale.customerPhone}</p>}
+              </div>
+            ) : null}
             <div className="border-t border-dashed border-black/30 my-3"></div>
           </div>
 
