@@ -407,13 +407,44 @@ function CloseSessionModal({ session, onClose, user }: { session: CashSession, o
                 <SummaryCard title="Reversed Orders" value={summary.totalReversedOrders.toString()} icon={<RotateCcw className="text-amber-500" size={16} />} />
               </div>
 
-              <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 flex justify-between items-center shadow-sm">
-                <div>
-                  <h3 className="font-black text-emerald-900 text-lg">Expected Cash in Drawer</h3>
-                  <p className="text-emerald-600/80 text-xs font-bold uppercase mt-0.5">Opening Cash + Cash Sales - Expenses</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-emerald-900 text-sm flex items-center gap-1.5">
+                      <Banknote size={16} className="text-emerald-600" />
+                      Cash in Drawer
+                    </h3>
+                    <p className="text-emerald-600/80 text-[10px] font-bold uppercase mt-0.5">Opening Cash + Cash - Expenses</p>
+                  </div>
+                  <div className="text-2xl font-black text-emerald-700 mt-2">
+                    {formatCurrency(summary.expectedCash)}
+                  </div>
                 </div>
-                <div className="text-3xl font-black text-emerald-600">
-                  {formatCurrency(summary.expectedCash)}
+
+                <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-blue-900 text-sm flex items-center gap-1.5">
+                      <CreditCard size={16} className="text-blue-600" />
+                      Expected Online/Bank
+                    </h3>
+                    <p className="text-blue-600/80 text-[10px] font-bold uppercase mt-0.5">Total Online/Card Recieved</p>
+                  </div>
+                  <div className="text-2xl font-black text-blue-700 mt-2">
+                    {formatCurrency(summary.totalOnlinePayments)}
+                  </div>
+                </div>
+
+                <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-violet-900 text-sm flex items-center gap-1.5">
+                      <TrendingUp size={16} className="text-violet-600" />
+                      Total Session Balance
+                    </h3>
+                    <p className="text-violet-600/80 text-[10px] font-bold uppercase mt-0.5">Cash in Drawer + Online</p>
+                  </div>
+                  <div className="text-2xl font-black text-violet-700 mt-2">
+                    {formatCurrency(summary.expectedCash + summary.totalOnlinePayments)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -556,13 +587,44 @@ function ViewSessionModal({ session, onClose }: { session: CashSession, onClose:
                 <SummaryCard title="Reversed Orders" value={(session.totalReversedOrders || 0).toString()} icon={<RotateCcw className="text-amber-500" size={16} />} />
               </div>
 
-              <div className="bg-violet-50 rounded-2xl p-5 border border-violet-100 flex justify-between items-center shadow-sm">
-                <div>
-                  <h3 className="font-black text-violet-900 text-lg">Expected Cash</h3>
-                  <p className="text-violet-600/80 text-xs font-bold uppercase mt-0.5">Opening Cash + Cash Sales - Expenses</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-emerald-900 text-sm flex items-center gap-1.5">
+                      <Banknote size={16} className="text-emerald-600" />
+                      Cash in Drawer
+                    </h3>
+                    <p className="text-emerald-600/80 text-[10px] font-bold uppercase mt-0.5">Opening Cash + Cash - Expenses</p>
+                  </div>
+                  <div className="text-2xl font-black text-emerald-700 mt-2">
+                    {formatCurrency(session.expectedCash || 0)}
+                  </div>
                 </div>
-                <div className="text-3xl font-black text-violet-600">
-                  {formatCurrency(session.expectedCash || 0)}
+
+                <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-blue-900 text-sm flex items-center gap-1.5">
+                      <CreditCard size={16} className="text-blue-600" />
+                      Expected Online/Bank
+                    </h3>
+                    <p className="text-blue-600/80 text-[10px] font-bold uppercase mt-0.5">Total Online/Card Recieved</p>
+                  </div>
+                  <div className="text-2xl font-black text-blue-700 mt-2">
+                    {formatCurrency(session.totalOnlinePayments || 0)}
+                  </div>
+                </div>
+
+                <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100 flex flex-col justify-between shadow-sm">
+                  <div>
+                    <h3 className="font-black text-violet-900 text-sm flex items-center gap-1.5">
+                      <TrendingUp size={16} className="text-violet-600" />
+                      Total Session Balance
+                    </h3>
+                    <p className="text-violet-600/80 text-[10px] font-bold uppercase mt-0.5">Cash in Drawer + Online</p>
+                  </div>
+                  <div className="text-2xl font-black text-violet-700 mt-2">
+                    {formatCurrency((session.expectedCash || 0) + (session.totalOnlinePayments || 0))}
+                  </div>
                 </div>
               </div>
             </div>
