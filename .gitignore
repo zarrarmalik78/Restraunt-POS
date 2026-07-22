@@ -12,9 +12,25 @@ installer_build/
 data/
 mac-binding.json
 *.exe
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# App-specific build outputs
+installer_build/
+data/
+mac-binding.json
+*.exe
 *.db
 *.sqlite
 release/
 comp-pos-c58d6e3078f0.json
 
-browser-release/
+
+browser-release/  
+ 

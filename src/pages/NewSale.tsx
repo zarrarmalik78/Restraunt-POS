@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Banknote, X, Edit3, Star, LayoutGrid, Check, Database, RefreshCw, Eye, Package, Sparkles, ChefHat, ClipboardList } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Banknote, X, Edit3, Star, LayoutGrid, Check, Database, RefreshCw, Eye, Package, Sparkles, ChefHat, ClipboardList, Lock } from 'lucide-react';
 import { useLiveTable, useLiveDocument } from '../db/hooks';
-import { db } from '../db/database';
+import { db, CashSession } from '../db/database';
+import { useNavigate } from 'react-router-dom';
 import { formatCurrency, cn, getItemImage } from '../lib/utils';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -41,8 +42,9 @@ const KitchenReceiptModal: React.FC<{
     win.document.write(`
       <html><head><title>Kitchen Receipt</title>
       <style>
-        @page { margin: 0; size: ${width}mm auto; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @page { margin: 0; size: ${width}mm 210mm; }
+        body { font-family: 'Inter', sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
         .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
         h2 { font-size: 1.8em; font-weight: 900; margin: 0 0 5px; text-transform: uppercase; letter-spacing: 1px; }
         .meta { font-size: 1.1em; font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 3px; }
@@ -52,7 +54,6 @@ const KitchenReceiptModal: React.FC<{
         .qty { font-weight: 900; font-size: 1.5em; width: 40px; vertical-align: top; }
         .item { font-weight: 700; font-size: 1.25em; line-height: 1.2; }
         .note { font-size: 1em; font-weight: 700; color: #444; margin-top: 4px; background: #f0f0f0; padding: 4px 6px; border-left: 3px solid #000; display: inline-block; }
-        .deal-sub { padding-left: 10px; font-size: 0.85em; font-weight: 600; color: #333; margin-top: 4px; }
         .footer { text-align: center; margin-top: 20px; font-size: 0.9em; font-weight: 700; border-top: 2px solid #000; padding-top: 10px; }
       </style></head>
       <body onload="window.print()" onafterprint="window.close()">${printContent}</body></html>
@@ -99,13 +100,6 @@ const KitchenReceiptModal: React.FC<{
                   <td className="qty py-2 text-lg font-black align-top w-10">{item.quantity}x</td>
                   <td className="item py-2 text-sm font-bold align-top">
                     {item.productName}
-                    {item.dealItems && item.dealItems.length > 0 && (
-                      <div className="deal-sub block mt-1">
-                        {item.dealItems.map((di: any, idx: number) => (
-                          <div key={idx}>• {di.quantity}x {di.productName}</div>
-                        ))}
-                      </div>
-                    )}
                     {item.kitchenNote && <div className="note block mt-1 text-xs font-bold bg-slate-200 px-2 py-1 border-l-2 border-slate-800 text-slate-700">{item.kitchenNote}</div>}
                   </td>
                 </tr>
@@ -314,6 +308,8 @@ const NewSale: React.FC = () => {
   const { documents: customers, loading: customersLoading } = useLiveTable('customers');
   const { documents: allSales } = useLiveTable('sales');
   const { document: settings } = useLiveDocument('settings', shopId);
+  const { documents: sessions, loading: sessionsLoading } = useLiveTable<CashSession>('cashSessions');
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'menu' | 'deals'>('menu');
   const [searchTerm, setSearchTerm] = useState('');
@@ -462,16 +458,6 @@ const NewSale: React.FC = () => {
       newCart[existingIndex].quantity += 1;
       setCart(newCart);
     } else {
-      const dealItems = isDeal ? item.items?.map((di: any) => {
-        const prod = products.find((p: any) => p.id === di.productId);
-        return {
-          productId: di.productId,
-          productName: prod ? prod.name : 'Unknown Item',
-          quantity: di.quantity,
-          variantName: di.variantName
-        };
-      }) : undefined;
-
       setCart([...cart, {
         id: Math.random().toString(36).substr(2, 9),
         productId: item.id,
@@ -480,8 +466,7 @@ const NewSale: React.FC = () => {
         quantity: 1,
         variantName: variant?.name,
         isDeal,
-        categoryId: item.categoryId,
-        dealItems
+        categoryId: item.categoryId
       }]);
     }
   };
@@ -558,8 +543,7 @@ const NewSale: React.FC = () => {
       kitchenNote: item.kitchenNote,
       variantName: item.variantName,
       isDeal: item.isDeal,
-      customDiscountedPrice: item.customDiscountedPrice,
-      dealItems: item.dealItems
+      customDiscountedPrice: item.customDiscountedPrice
     };
   });
 
@@ -610,6 +594,7 @@ const NewSale: React.FC = () => {
           actorId: currentUser?.id,
           actorName: currentUser?.username || 'System',
           actorRole: userRole || 'system',
+          sessionId: activeSession?.id,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -630,7 +615,6 @@ const NewSale: React.FC = () => {
   const handleFinalCheckout = async (selectedPaymentMethod: 'cash' | 'card') => {
     if (!activeOpenOrder) return;
     setIsProcessing(true);
-    const toastId = toast.loading('Completing order...');
     try {
       const saleItems = buildSaleItems();
       await db.sales.update(activeOpenOrder.id, {
@@ -655,10 +639,9 @@ const NewSale: React.FC = () => {
 
       setShowCheckoutModal(false);
       setCompletedSale(completedSaleData);
-      toast.dismiss(toastId);
       clearOrder();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to complete order', { id: toastId });
+      toast.error(error.message || 'Failed to complete order');
     } finally {
       setIsProcessing(false);
     }
@@ -668,7 +651,6 @@ const NewSale: React.FC = () => {
   const processSale = async () => {
     if (cart.length === 0) return toast.error('Cart is empty');
     setIsProcessing(true);
-    const toastId = toast.loading('Processing order...');
     try {
       const saleItems = buildSaleItems();
       const saleData: any = {
@@ -685,6 +667,7 @@ const NewSale: React.FC = () => {
         actorId: currentUser?.id,
         actorName: currentUser?.username || 'System',
         actorRole: userRole || 'system',
+        sessionId: activeSession?.id,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -692,10 +675,9 @@ const NewSale: React.FC = () => {
       setCart([]);
       setSelectedCustomerId(null);
       setIsMembershipApplied(false);
-      toast.dismiss(toastId);
       setCompletedSale({ ...saleData, id: saleId });
     } catch (error: any) {
-      toast.error(error.message || 'Failed to complete order', { id: toastId });
+      toast.error(error.message || 'Failed to complete order');
     } finally {
       setIsProcessing(false);
     }
@@ -721,6 +703,32 @@ const NewSale: React.FC = () => {
   const isDineIn = orderType === 'dine_in';
   const previouslySentCount = activeOpenOrder?.kitchenPrintedCount || 0;
   const newItemsCount = isDineIn && activeOpenOrder ? Math.max(0, cart.length - previouslySentCount) : 0;
+
+  const activeSession = sessions.find(s => s.status === 'open');
+
+  if (!sessionsLoading && !activeSession) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-112px)]">
+        <div className="glass-card p-12 max-w-md w-full text-center space-y-6 bg-slate-50/80 shadow-2xl rounded-[32px] animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Lock size={40} className="text-rose-500" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">POS Locked</h2>
+            <p className="text-slate-500 mt-2 font-medium text-sm leading-relaxed">
+              You must open a Cash Session before processing orders. This ensures all sales are properly tracked to your shift.
+            </p>
+          </div>
+          <button 
+            onClick={() => navigate('/sessions')}
+            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/30 transition-all text-lg flex items-center justify-center gap-2"
+          >
+            Open Cash Session
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full h-[calc(100vh-112px)] min-h-[700px] animate-in fade-in duration-500 pb-2 gap-6">

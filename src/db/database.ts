@@ -92,6 +92,7 @@ export interface SalePayment {
 export interface Sale {
   id?: string;
   shopId: string;
+  sessionId?: string;
   customerId?: string;
   items: SaleItem[];
   totalAmount: number;
@@ -100,8 +101,10 @@ export interface Sale {
   paymentMethod: 'cash' | 'card';
   orderType: 'dine_in' | 'take_away' | 'delivery';
   tableNumber?: string;
-  status?: 'open' | 'completed';
-  kitchenPrintedCount?: number;
+  status?: 'open' | 'completed' | 'returned';
+  returnedAt?: Date;
+  returnedBy?: string;
+  returnReason?: string;
   paymentSplits?: SalePayment[];
   saleDate: Date;
   actorId?: string;
@@ -114,6 +117,7 @@ export interface Sale {
 export interface Expense {
   id?: string;
   shopId: string;
+  sessionId?: string;
   category: string;
   amount: number;
   description: string;
@@ -173,6 +177,7 @@ export interface Setting {
   shopLogo: string | null;
   currency: string;
   cardDiscountPercentage: number;
+  managerPassword?: string;
   receiptWidth?: number;
   receiptFontSize?: number;
   receiptPadding?: number;
@@ -402,7 +407,28 @@ export interface Deal {
   updatedAt: Date;
 }
 
+export interface CashSession {
+  id?: string;
+  shopId: string;
+  status: 'open' | 'closed';
+  openedAt: Date;
+  closedAt?: Date;
+  openedBy: string; // actorName
+  closedBy?: string; // actorName
+  openingCash?: number;
+  expectedCash?: number;
+  totalOrders?: number;
+  totalSales?: number;
+  totalCashPayments?: number;
+  totalOnlinePayments?: number;
+  totalReversedOrders?: number;
+  totalExpenses?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const db = {
+  cashSessions: new LocalTable<CashSession>('cashSessions'),
   products: new LocalTable<Product>('products'),
   deals: new LocalTable<Deal>('deals'),
   serialUnits: new LocalTable<SerialUnit>('serialUnits'),

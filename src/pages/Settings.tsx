@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Store, Palette, FileText, Shield, Save, Smartphone, CheckCircle2, Info, Download, HardDrive, Upload, User, Key, Mail, Lock, Users, UserPlus, Trash2, Database, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, Store, Palette, FileText, Shield, Save, CheckCircle2, Info, Download, HardDrive, Upload, User, Key, Mail, Lock, Users, UserPlus, Trash2, Database, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useLiveDocument, useLiveTable } from '../db/hooks';
 import { db } from '../db/database';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,7 +22,10 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     if (settings) {
-      setFormData(settings);
+      setFormData({
+        managerPassword: 'manager',
+        ...settings
+      });
     } else {
       setFormData({
         shopName: 'Pizza Hut POS',
@@ -35,6 +38,7 @@ const Settings: React.FC = () => {
         invoicePrefix: 'INV-',
         invoiceFooter: 'Thank you for your business!',
         cardDiscountPercentage: 0,
+        managerPassword: 'manager',
         themeColor: '#8b5cf6',
         accentColor: '#d946ef',
         receiptWidth: 80,
@@ -127,8 +131,8 @@ const Settings: React.FC = () => {
           <SettingsNavButton active={activeTab === 'branding'} onClick={() => setActiveTab('branding')} icon={<Palette size={18} />} label="Branding" />
           <SettingsNavButton active={activeTab === 'invoice'} onClick={() => setActiveTab('invoice')} icon={<FileText size={18} />} label="Invoice Template" />
           <SettingsNavButton active={activeTab === 'system'} onClick={() => setActiveTab('system')} icon={<SettingsIcon size={18} />} label="System Config" />
+          <SettingsNavButton active={activeTab === 'security'} onClick={() => setActiveTab('security')} icon={<Lock size={18} />} label="Manager Security" />
           <SettingsNavButton active={activeTab === 'data'} onClick={() => setActiveTab('data')} icon={<HardDrive size={18} />} label="Backup & Restore" />
-          <SettingsNavButton active={activeTab === 'mobile'} onClick={() => setActiveTab('mobile')} icon={<Smartphone size={18} />} label="Mobile App" />
           <SettingsNavButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<User size={18} />} label="User Account" />
         </div>
 
@@ -262,24 +266,6 @@ const Settings: React.FC = () => {
                     <p className="text-[10px] text-slate-400 font-medium">Inner padding on left/right sides</p>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only" 
-                        checked={formData.printKitchenReceiptTakeawayDelivery || false} 
-                        onChange={(e) => setFormData({ ...formData, printKitchenReceiptTakeawayDelivery: e.target.checked })} 
-                      />
-                      <div className={`block w-14 h-8 rounded-full transition-colors ${formData.printKitchenReceiptTakeawayDelivery ? 'bg-violet-600' : 'bg-slate-300'}`}></div>
-                      <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${formData.printKitchenReceiptTakeawayDelivery ? 'translate-x-6' : ''}`}></div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Auto-Print Kitchen Receipt (Takeaway / Delivery)</p>
-                      <p className="text-xs text-slate-500 font-medium">If enabled, a separate print window will open for the kitchen receipt after the customer receipt.</p>
-                    </div>
-                  </label>
-                </div>
               </div>
             </div>
           )}
@@ -297,65 +283,7 @@ const Settings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'data' && (
-            <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
-                <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><HardDrive size={20} /></div>
-                <h3 className="text-xl font-bold text-slate-900">Backup & Restore</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <Download className="text-violet-600" size={32} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900">Download Backup</h4>
-                    <p className="text-xs text-slate-500 mt-1">Export all your data locally.</p>
-                  </div>
-                  <button onClick={handleBackup} disabled={backingUp} className="px-6 py-2 bg-violet-600 text-white rounded-xl font-bold w-full">
-                    {backingUp ? 'Creating...' : 'Export Database'}
-                  </button>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <Upload className="text-rose-600" size={32} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900">Restore Backup</h4>
-                    <p className="text-xs text-slate-500 mt-1">Import a previous backup file.</p>
-                  </div>
-                  <label className="cursor-pointer px-6 py-2 bg-rose-600 text-white rounded-xl font-bold w-full hover:bg-rose-700 transition block text-center">
-                    {restoring ? 'Restoring...' : 'Import Database'}
-                    <input type="file" className="hidden" accept=".json" onChange={handleRestore} disabled={restoring} />
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'mobile' && (
-            <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Smartphone size={20} /></div>
-                <h3 className="text-xl font-bold text-slate-900">Mobile Application</h3>
-              </div>
-              <div className="bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-                <div className="relative z-10 space-y-4">
-                  <h4 className="text-2xl font-bold">Install Offline App</h4>
-                  <p className="text-sm">Install the application on your device to use it fully offline.</p>
-                  {isStandalone ? (
-                    <div className="flex items-center gap-2 py-2 px-4 bg-white/20 rounded-xl w-fit"><CheckCircle2 size={20} /><span className="font-bold">Installed</span></div>
-                  ) : canInstall ? (
-                    <button onClick={promptInstall} className="flex items-center gap-2 px-6 py-3 bg-white text-violet-600 font-bold rounded-xl"><Download size={20} /> Install Now</button>
-                  ) : (
-                    <div className="flex items-center gap-2 py-2 px-4 bg-white/10 rounded-xl text-xs"><Info size={16} /><span>Use browser menu to 'Add to Home Screen'</span></div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'security' && <ManagerSecuritySection settings={settings} />}
 
           {activeTab === 'account' && <UserManagementSection />}
         </div>
@@ -505,5 +433,99 @@ const SettingsNavButton: React.FC<{ active: boolean, onClick: () => void, icon: 
     {icon} {label}
   </button>
 );
+
+const ManagerSecuritySection: React.FC<{ settings: any }> = ({ settings }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword.trim()) return toast.error('Please enter a new manager password');
+    if (newPassword !== confirmPassword) return toast.error('Passwords do not match');
+
+    setSaving(true);
+    try {
+      if (settings) {
+        await db.settings.update(settings.id, {
+          managerPassword: newPassword.trim(),
+          updatedAt: new Date()
+        });
+        toast.success('Manager password updated successfully');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        toast.error('Settings not loaded');
+      }
+    } catch (error) {
+      toast.error('Failed to update manager password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
+        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+          <Shield size={20} />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900">Manager Security</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-6 flex gap-3 items-start">
+          <Shield className="text-amber-600 shrink-0 mt-0.5" size={20} />
+          <div className="text-xs text-amber-900 leading-relaxed">
+            <strong className="font-bold">Manager Override Protection:</strong> This security password is required to authorize order voiding/returns and sensitive administrative tasks. Keep this password safe and separate from standard login credentials.
+          </div>
+        </div>
+
+        <form onSubmit={handleUpdate} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Key size={16} className="text-violet-600" />
+            <h4 className="font-bold text-slate-900">Change Manager Password</h4>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confirm Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            disabled={saving}
+            type="submit"
+            className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-[0.98]"
+          >
+            {saving ? 'Updating...' : 'Update Manager Password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export default Settings;

@@ -13,14 +13,89 @@ import { X } from 'lucide-react';
 // Stable sort fn at module scope — prevents useLiveTable re-subscribing on every render
 const salesSortFn = (a: any, b: any) => b.saleDate.getTime() - a.saleDate.getTime();
 
+const ReturnModal: React.FC<{ sale: any; onConfirm: (reason: string, password: string) => void; onClose: () => void }> = ({ sale, onConfirm, onClose }) => {
+  const [password, setPassword] = useState('');
+  const [reason, setReason] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/20 z-[110] flex items-center justify-center p-4">
+      <div className="bg-white rounded-[32px] p-6 max-w-md w-full animate-in zoom-in duration-300 shadow-2xl border border-slate-100">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+              <RotateCcw size={20} />
+            </div>
+            <h3 className="text-xl font-black text-slate-900">Return & Void Bill</h3>
+          </div>
+          <button onClick={onClose} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors text-slate-500">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <p className="text-xs text-slate-500 leading-relaxed">
+            You are about to return and void <strong className="text-slate-900">Bill #${sale.id?.toString().padStart(6, '0')}</strong>. This will reverse all daily revenue totals and restore the purchased items back to inventory.
+          </p>
+
+          <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-4 flex flex-col gap-1">
+            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Amount to Reverse</span>
+            <span className="text-2xl font-black text-rose-700">{formatCurrency(sale.totalAmount)}</span>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-700">Manager Security Password <span className="text-rose-500">*</span></label>
+            <input
+              type="password"
+              required
+              autoComplete="new-password"
+              placeholder="Enter manager password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-700">Reason for Return <span className="text-slate-400 font-normal">(Optional)</span></label>
+            <textarea
+              rows={2}
+              placeholder="e.g. Cashier error, customer changed mind..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 focus:bg-white transition-all resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(reason, password)}
+            disabled={!password.trim()}
+            className="w-1/2 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            Confirm Return
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Sales: React.FC = () => {
-  const { shopId, userRole } = useAuth();
+  const { shopId, userRole, currentUser } = useAuth();
   const { documents: sales, loading } = useLiveTable('sales', undefined, salesSortFn);
   const { documents: customers } = useLiveTable('customers');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [showInvoiceModal, setShowInvoiceModal] = useState<any | null>(null);
+  const [showReturnModal, setShowReturnModal] = useState<any | null>(null);
 
   const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -30,13 +105,18 @@ const Sales: React.FC = () => {
       // Exclude open dine-in orders (they appear in POS open tables panel)
       if (s.status === 'open') return false;
 
+      // Filter by returned status
+      const showReturnedOnly = paymentFilter === 'return';
+      if (showReturnedOnly && s.status !== 'returned') return false;
+      if (!showReturnedOnly && s.status === 'returned') return false;
+
       const customer = customers.find((c: any) => c.id === s.customerId);
       const customerName = customer?.name || 'Walk-in';
       const saleDate = new Date(s.saleDate).toISOString().split('T')[0];
       
       const matchesSearch = customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            (s.id && s.id.toString().includes(searchTerm));
-      const matchesPayment = paymentFilter === 'all' || s.paymentMethod === paymentFilter;
+      const matchesPayment = paymentFilter === 'all' || paymentFilter === 'return' || s.paymentMethod === paymentFilter;
       const matchesDate = saleDate >= startDate && saleDate <= endDate;
 
       return matchesSearch && matchesPayment && matchesDate;
@@ -47,98 +127,113 @@ const Sales: React.FC = () => {
     window.print();
   };
 
-  const handleDelete = async (sale: any) => {
-    if (window.confirm('Are you sure you want to return this bill? This will reverse all inventory and credit changes for unreturned items.')) {
-      try {
-        let creditToReverse = 0;
+  const { document: settings } = useLiveDocument('settings', shopId || 'default_shop');
 
-        // Reverse inventory
-        for (const item of sale.items) {
-          // If item was already individually returned, do not restock it again!
-          if (item.isReturned) continue;
-          const product = await db.products.get(item.productId);
-          if (product) {
-            await db.products.update(item.productId, {
-              stockQuantity: (product.stockQuantity || 0) + item.quantity,
-              updatedAt: new Date()
-            });
-          }
+  const handleReturn = async (sale: any, reason: string, password: string) => {
+    const expectedPassword = settings?.managerPassword || 'manager';
+    if (password.trim() !== expectedPassword) {
+      toast.error('Incorrect Manager Password');
+      return false;
+    }
 
-          if (item.serialNumbers && item.serialNumbers.length > 0) {
-            const allSerials = await db.serialUnits.toArray();
-            const toUpdate = allSerials.filter((s: any) => item.serialNumbers.includes(s.serialNumber));
-            for (const u of toUpdate) {
-              if (u.id) {
-                await db.serialUnits.update(u.id, {
-                  status: 'in_stock',
-                  soldDate: undefined,
-                  saleId: undefined,
-                  soldToCustomerId: undefined,
-                  updatedAt: new Date()
-                });
-              }
-            }
-          }
+    const finalReason = reason.trim() || 'No reason provided';
 
-          await db.inventoryLogs.add({
-            shopId: shopId!,
-            productId: item.productId,
-            productName: item.productName,
-            action: 'return',
-            type: 'return',
-            change: item.quantity,
-            reason: `Bill Returned: ${sale.id}`,
-            notes: item.serialNumbers?.length ? `Restored Serials: ${item.serialNumbers.join(', ')}` : '',
-            actorId: userRole,
-            actorName: 'System',
-            actorRole: userRole || 'admin',
-            createdAt: new Date()
+    try {
+      let creditToReverse = 0;
+
+      // Reverse inventory
+      for (const item of sale.items) {
+        // If item was already individually returned, do not restock it again!
+        if (item.isReturned) continue;
+        const product = await db.products.get(item.productId);
+        if (product) {
+          await db.products.update(item.productId, {
+            stockQuantity: (product.stockQuantity || 0) + item.quantity,
+            updatedAt: new Date()
           });
-
-          creditToReverse += item.totalPrice; // Track value of unreturned items to reverse credit properly
         }
 
-        // Reverse credit for the remaining unreturned items value
-        if (sale.customerId && creditToReverse > 0) {
-          let actualCreditReversed = 0;
-          if (sale.paymentMethod === 'credit') {
-            actualCreditReversed = creditToReverse;
-          } else if (sale.paymentMethod === 'split' && sale.paymentSplits) {
-             const creditSplit = sale.paymentSplits.find((s: any) => s.method === 'credit');
-             if (creditSplit) {
-                // If they paid partially in credit, we only reverse up to the credit amount they actually took
-                actualCreditReversed = Math.min(creditSplit.amount, creditToReverse);
-             }
-          }
-
-          if (actualCreditReversed > 0) {
-            const customer = await db.customers.get(sale.customerId);
-            if (customer) {
-              await db.customers.update(sale.customerId, {
-                creditBalance: (customer.creditBalance || 0) - actualCreditReversed,
+        if (item.serialNumbers && item.serialNumbers.length > 0) {
+          const allSerials = await db.serialUnits.toArray();
+          const toUpdate = allSerials.filter((s: any) => item.serialNumbers.includes(s.serialNumber));
+          for (const u of toUpdate) {
+            if (u.id) {
+              await db.serialUnits.update(u.id, {
+                status: 'in_stock',
+                soldDate: undefined,
+                saleId: undefined,
+                soldToCustomerId: undefined,
                 updatedAt: new Date()
               });
-              await db.credits.add({
-                shopId: shopId!,
-                customerId: sale.customerId,
-                amount: actualCreditReversed,
-                transactionType: 'taken', // Reducing their credit balance is effectively a payment/clearance
-                notes: `Bill Returned: ${sale.id}`,
-                actorId: userRole,
-                actorName: 'System',
-                actorRole: userRole || 'admin',
-                createdAt: new Date()
-              });
             }
           }
         }
 
-        await db.sales.delete(sale.id);
-        toast.success('Bill returned and inventory restored');
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to delete sale');
+        await db.inventoryLogs.add({
+          shopId: shopId!,
+          productId: item.productId,
+          productName: item.productName,
+          action: 'return',
+          type: 'return',
+          change: item.quantity,
+          reason: `Bill Returned: ${sale.id} (${finalReason})`,
+          notes: item.serialNumbers?.length ? `Restored Serials: ${item.serialNumbers.join(', ')}` : '',
+          actorId: userRole,
+          actorName: currentUser?.username || 'System',
+          actorRole: userRole || 'admin',
+          createdAt: new Date()
+        });
+
+        creditToReverse += item.totalPrice; // Track value of unreturned items to reverse credit properly
       }
+
+      // Reverse credit for the remaining unreturned items value
+      if (sale.customerId && creditToReverse > 0) {
+        let actualCreditReversed = 0;
+        if (sale.paymentMethod === 'credit') {
+          actualCreditReversed = creditToReverse;
+        } else if (sale.paymentMethod === 'split' && sale.paymentSplits) {
+           const creditSplit = sale.paymentSplits.find((s: any) => s.method === 'credit');
+           if (creditSplit) {
+              // If they paid partially in credit, we only reverse up to the credit amount they actually took
+              actualCreditReversed = Math.min(creditSplit.amount, creditToReverse);
+           }
+        }
+
+        if (actualCreditReversed > 0) {
+          const customer = await db.customers.get(sale.customerId);
+          if (customer) {
+            await db.customers.update(sale.customerId, {
+              creditBalance: (customer.creditBalance || 0) - actualCreditReversed,
+              updatedAt: new Date()
+            });
+            await db.credits.add({
+              shopId: shopId!,
+              customerId: sale.customerId,
+              amount: actualCreditReversed,
+              transactionType: 'taken', // Reducing their credit balance is effectively a payment/clearance
+              notes: `Bill Returned: ${sale.id} (${finalReason})`,
+              actorId: userRole,
+              actorName: currentUser?.username || 'System',
+              actorRole: userRole || 'admin',
+              createdAt: new Date()
+            });
+          }
+        }
+      }
+
+      // Soft delete: mark as returned instead of deleting
+      await db.sales.update(sale.id, {
+        status: 'returned',
+        returnReason: finalReason,
+        returnedAt: new Date(),
+        returnedBy: currentUser?.username || 'admin',
+        updatedAt: new Date()
+      });
+      toast.success('Bill returned and inventory restored');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to return sale');
     }
   };
 
@@ -175,6 +270,7 @@ const Sales: React.FC = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             type="text" 
+            autoComplete="off"
             placeholder="Search by customer name or sale ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -183,16 +279,29 @@ const Sales: React.FC = () => {
         </div>
         <div className="flex gap-3">
           <select 
-            value={paymentFilter}
+            value={paymentFilter === 'return' ? 'all' : paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 shadow-sm"
+            disabled={paymentFilter === 'return'}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-500/20 shadow-sm disabled:opacity-50"
           >
-            <option value="all">All Payments</option>
+            <option value="all">All Active Payments</option>
             <option value="cash">Cash</option>
             <option value="online">Online</option>
             <option value="credit">Credit</option>
-            <option value="return">Return</option>
           </select>
+
+          <button
+            onClick={() => setPaymentFilter(paymentFilter === 'return' ? 'all' : 'return')}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border shadow-sm select-none",
+              paymentFilter === 'return' 
+                ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 ring-2 ring-rose-500/20" 
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            )}
+          >
+            <RotateCcw size={16} className={cn(paymentFilter === 'return' && "animate-pulse")} />
+            Returned Bills
+          </button>
         </div>
       </div>
 
@@ -212,77 +321,117 @@ const Sales: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredSales.map((sale: any) => {
-                const customer = customers.find((c: any) => c.id === sale.customerId);
-                return (
-                  <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <span className="text-[10px] font-bold font-mono text-slate-400 group-hover:text-violet-600 transition-colors">
-                        #{sale.id?.toString().padStart(6, '0')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                          <User size={14} />
-                        </div>
-                        <span className="text-slate-900 font-bold">{customer?.name || 'Walk-in'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-emerald-600 font-bold">{formatCurrency(sale.totalAmount)}</td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-fit",
-                        sale.paymentMethod === 'cash' ? "bg-violet-100 text-violet-600" :
-                        sale.paymentMethod === 'online' ? "bg-blue-100 text-blue-600" :
-                        sale.paymentMethod === 'credit' ? "bg-amber-100 text-amber-600" :
-                        "bg-rose-100 text-rose-600"
-                      )}>
-                        {sale.paymentMethod === 'cash' && <Banknote size={12} />}
-                        {sale.paymentMethod === 'online' && <RefreshCw size={12} />}
-                        {sale.paymentMethod === 'credit' && <CreditCard size={12} />}
-                        {sale.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-500 font-medium text-sm">
-                        <Clock size={14} className="text-slate-400" />
-                        {new Date(sale.saleDate).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
-                          sale.actorRole === 'cashier' ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"
-                        )}>
-                          {sale.actorRole === 'cashier' ? 'Cashier' : 'Admin'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => setShowInvoiceModal(sale)}
-                          className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all" 
-                          title="View Invoice"
-                        >
-                          <FileText size={18} />
-                        </button>
-                        {userRole === 'admin' && (
-                          <button 
-                            onClick={() => handleDelete(sale)}
-                            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" 
-                            title="Return Bill"
-                          >
-                            <RotateCcw size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {(() => {
+                let lastDateStr = '';
+                return filteredSales.map((sale: any) => {
+                  const customer = customers.find((c: any) => c.id === sale.customerId);
+                  const saleDateObj = new Date(sale.saleDate);
+                  const dateStr = saleDateObj.toLocaleDateString([], { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  });
+                  
+                  const showSeparator = dateStr !== lastDateStr;
+                  lastDateStr = dateStr;
+
+                  return (
+                    <React.Fragment key={sale.id}>
+                      {showSeparator && (
+                        <tr className="bg-violet-50/30 border-y border-violet-100/30">
+                          <td colSpan={7} className="px-6 py-3.5 text-xs font-bold text-violet-700 tracking-wider flex items-center gap-2">
+                            <Clock size={13} className="text-violet-500" />
+                            {dateStr}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold font-mono text-slate-400 group-hover:text-violet-600 transition-colors">
+                              #{sale.id?.toString().padStart(6, '0')}
+                            </span>
+                            {sale.status === 'returned' && sale.returnReason && (
+                              <span className="text-[10px] text-rose-600 italic font-semibold mt-0.5 max-w-[200px] truncate" title={sale.returnReason}>
+                                Reason: {sale.returnReason}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                              <User size={14} />
+                            </div>
+                            <span className="text-slate-900 font-bold">{customer?.name || 'Walk-in'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-emerald-600 font-bold">{formatCurrency(sale.totalAmount)}</td>
+                        <td className="px-6 py-4">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 w-fit",
+                            sale.status === 'returned' ? "bg-rose-100 text-rose-600 animate-pulse" :
+                            sale.paymentMethod === 'cash' ? "bg-violet-100 text-violet-600" :
+                            sale.paymentMethod === 'online' ? "bg-blue-100 text-blue-600" :
+                            "bg-amber-100 text-amber-600"
+                          )}>
+                            {sale.status === 'returned' && <RotateCcw size={12} />}
+                            {sale.status !== 'returned' && sale.paymentMethod === 'cash' && <Banknote size={12} />}
+                            {sale.status !== 'returned' && sale.paymentMethod === 'online' && <RefreshCw size={12} />}
+                            {sale.status !== 'returned' && sale.paymentMethod === 'credit' && <CreditCard size={12} />}
+                            {sale.status === 'returned' ? 'Returned' : sale.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-0.5 text-slate-500 font-medium text-sm">
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} className="text-slate-400" />
+                              {new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </div>
+                            {sale.status === 'returned' && sale.returnedAt && (
+                              <span className="text-[10px] text-rose-500 font-bold">
+                                Returned: {new Date(sale.returnedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest",
+                              sale.status === 'returned' ? "bg-rose-50 text-rose-700 border border-rose-100" :
+                              sale.actorRole === 'cashier' ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"
+                            )}>
+                              {sale.status === 'returned' ? `By: ${sale.returnedBy || 'Admin'}` : sale.actorRole === 'cashier' ? 'Cashier' : 'Admin'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => setShowInvoiceModal(sale)}
+                              className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all" 
+                              title="View Invoice"
+                            >
+                              <FileText size={18} />
+                            </button>
+                            {userRole === 'admin' && sale.status !== 'returned' && (
+                              <button 
+                                onClick={() => setShowReturnModal(sale)}
+                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" 
+                                title="Return Bill"
+                              >
+                                <RotateCcw size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
@@ -304,18 +453,28 @@ const Sales: React.FC = () => {
           onSaleUpdated={() => setShowInvoiceModal(null)}
         />
       )}
+
+      {showReturnModal && (
+        <ReturnModal 
+          sale={showReturnModal}
+          onConfirm={async (reason, password) => {
+            const success = await handleReturn(showReturnModal, reason, password);
+            if (success !== false) {
+              setShowReturnModal(null);
+            }
+          }}
+          onClose={() => setShowReturnModal(null)}
+        />
+      )}
     </div>
   );
 };
 
-export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => void, autoPrint?: boolean, onSaleUpdated?: () => void }> = ({ sale, customer, onClose, autoPrint, onSaleUpdated }) => {
+export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => void, onSaleUpdated?: () => void, autoPrint?: boolean }> = ({ sale, customer, onClose, onSaleUpdated, autoPrint }) => {
   const { shopId } = useAuth();
   const { document: settings } = useLiveDocument('settings', shopId || 'default_shop');
   
-  const handlePrint = () => window.print();
   const currencySymbol = settings?.currency || 'Rs';
-
-  // Reconstruct subtotal since totalAmount might include a card discount
   const subtotal = sale.items.reduce((acc: number, item: any) => acc + (item.totalPrice || 0), 0);
   const discount = subtotal - sale.totalAmount;
 
@@ -323,115 +482,163 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
   const printFontSize = settings?.receiptFontSize || 12;
   const printPadding = settings?.receiptPadding || 10;
 
-  const printKitchenReceipt = React.useCallback(() => {
-    const width = printWidth;
-    const fontSize = printFontSize;
-    const padding = printPadding;
-    const itemsHtml = sale.items?.map((item: any) => {
-      const dealSubItems = item.dealItems?.length > 0
-        ? `<div class="deal-sub">${item.dealItems.map((di: any) => `<div>• ${di.quantity}x ${di.productName}</div>`).join('')}</div>`
-        : '';
-      const noteHtml = item.kitchenNote
-        ? `<div class="note">${item.kitchenNote}</div>`
-        : '';
-      return `<tr><td class="qty">${item.quantity}x</td><td class="item">${item.productName}${dealSubItems}${noteHtml}</td></tr>`;
-    }).join('');
+  // Build plain HTML string for the popup — avoids blank pages from window.print()
+  const buildReceiptHTML = () => {
+    const itemRows = sale.items?.map((item: any) => `
+      <tr style="border-bottom: 1px dashed #ccc;">
+        <td style="padding: 6px 4px 6px 0; font-weight:700; vertical-align:top; white-space:nowrap;">${item.quantity}x</td>
+        <td style="padding: 6px 4px; vertical-align:top;">
+          <div style="font-weight:700; text-transform:uppercase;">${item.productName}</div>
+          ${item.isDeal ? '<div style="font-size:0.85em;">** COMBO DEAL **</div>' : ''}
+          ${item.kitchenNote ? `<div style="font-size:0.85em;">* Note: ${item.kitchenNote}</div>` : ''}
+        </td>
+        <td style="padding: 6px 0 6px 4px; text-align:right; font-weight:700; vertical-align:top; white-space:nowrap;">${formatCurrency(item.totalPrice, currencySymbol)}</td>
+      </tr>
+    `).join('');
 
-    const orderType = sale.orderType?.replace('_', ' ').toUpperCase() || '';
-    const orderId = '#' + (sale.id?.toString().padStart(4, '0') || '0000');
-    const time = new Date(sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const memberHTML = customer ? `
+      <div style="border-top:1px dashed #999; margin:8px 0; padding-top:8px; font-size:0.9em; text-transform:uppercase;">
+        <div style="font-weight:700;">MEMBER: ${customer.name}</div>
+        ${customer.cardNumber ? `<div>CARD NO: ${customer.cardNumber}</div>` : ''}
+        ${customer.phone ? `<div>PHONE: ${customer.phone}</div>` : ''}
+      </div>
+    ` : '';
 
-    const winWidth = 600;
-    const winHeight = 800;
-    const left = (window.screen.width / 2) - (winWidth / 2);
-    const top = (window.screen.height / 2) - (winHeight / 2);
-    const win = window.open('', '_blank', `width=${winWidth},height=${winHeight},top=${top},left=${left}`);
-    if (!win) return;
-    win.document.write(`
-      <html><head><title>Kitchen Receipt</title>
-      <style>
-        @page { margin: 0; size: ${width}mm auto; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: ${padding}px; width: ${width}mm; max-width: ${width}mm; margin: 0; color: #000; background: #fff; font-size: ${fontSize}px; }
-        .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        h2 { font-size: 1.8em; font-weight: 900; margin: 0 0 5px; text-transform: uppercase; letter-spacing: 1px; }
-        .meta { font-size: 1.1em; font-weight: 700; display: flex; justify-content: space-between; margin-bottom: 3px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { border-bottom: 1px solid #000; padding-bottom: 5px; text-align: left; font-size: 0.9em; text-transform: uppercase; color: #555; }
-        td { padding: 8px 0; border-bottom: 1px dashed #ccc; }
-        .qty { font-weight: 900; font-size: 1.5em; width: 40px; vertical-align: top; }
-        .item { font-weight: 700; font-size: 1.25em; line-height: 1.2; }
-        .deal-sub { padding-left: 10px; font-size: 0.85em; font-weight: 600; color: #333; margin-top: 4px; }
-        .note { font-size: 1em; font-weight: 700; color: #444; margin-top: 4px; background: #f0f0f0; padding: 4px 6px; border-left: 3px solid #000; display: inline-block; }
-        .footer { text-align: center; margin-top: 20px; font-size: 0.9em; font-weight: 700; border-top: 2px solid #000; padding-top: 10px; }
-      </style></head>
-      <body onload="window.print()" onafterprint="window.close()">
-        <div class="header">
-          <h2>Kitchen Order</h2>
-          <div class="meta"><span>Order:</span><span>${orderId}</span></div>
-          <div class="meta"><span>Type:</span><span>${orderType}</span></div>
-          <div class="meta"><span>Time:</span><span>${time}</span></div>
-        </div>
-        <table>
-          <thead><tr><th>Qty</th><th>Item</th></tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-        <div class="footer">— Prepare Immediately —</div>
-      </body></html>
-    `);
+    const discountHTML = discount > 0.01 ? `
+      <div style="display:flex; justify-content:space-between;">
+        <span>MEMBERSHIP DISCOUNT</span><span>-${formatCurrency(discount, currencySymbol)}</span>
+      </div>
+    ` : '';
+
+    const footerHTML = settings?.invoiceFooter ? `<div style="font-size:0.85em; text-transform:uppercase; white-space:pre-wrap; margin-bottom:8px;">${settings.invoiceFooter}</div>` : '';
+
+    const orderType = sale.orderType === 'dine_in' ? 'DINE IN' : sale.orderType === 'delivery' ? 'DELIVERY' : 'TAKE AWAY';
+    const saleDate = new Date(sale.saleDate);
+    const dateStr = saleDate.toLocaleDateString();
+    const timeStr = saleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const returnedBannerHTML = sale.status === 'returned' ? `
+      <div style="border: 2px solid #ef4444; color: #ef4444; text-align: center; padding: 8px; margin-bottom: 8px; font-weight: 900; font-size: 1.1em; text-transform: uppercase;">
+        VOID / RETURNED
+        <div style="font-size: 0.7em; font-weight: 700; margin-top: 4px;">Reason: ${sale.returnReason || 'N/A'}</div>
+        <div style="font-size: 0.7em; font-weight: 700;">By: ${sale.returnedBy || 'Admin'}</div>
+      </div>
+    ` : '';
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <title>Receipt</title>
+  <style>
+    @page { margin: 0; size: ${printWidth}mm 210mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: ${printPadding}px;
+      width: ${printWidth}mm;
+      max-width: ${printWidth}mm;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: ${printFontSize}px;
+      font-weight: 700;
+      color: #000;
+      background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    .divider { border-top: 1px dashed #666; margin: 8px 0; }
+    .center { text-align: center; }
+    .flex-row { display: flex; justify-content: space-between; }
+    .total-row { display: flex; justify-content: space-between; font-size: 1.2em; font-weight: 900; border-top: 1px dashed #666; padding-top: 6px; margin-top: 6px; }
+  </style>
+</head>
+<body onload="window.print()" onafterprint="window.close()">
+  ${returnedBannerHTML}
+  <div class="center">
+    <div style="font-size:1.6em; font-weight:900; text-transform:uppercase; margin-bottom:2px;">${settings?.shopName || 'Restaurant'}</div>
+    ${settings?.shopAddress ? `<div style="font-size:0.85em; text-transform:uppercase;">${settings.shopAddress}</div>` : ''}
+    ${settings?.shopPhone ? `<div style="font-size:0.85em;">TEL: ${settings.shopPhone}</div>` : ''}
+  </div>
+
+  <div class="divider"></div>
+  <div class="center" style="text-transform:uppercase; font-weight:900;">${orderType}</div>
+  <div class="center" style="text-transform:uppercase;">PAYMENT: ${sale.paymentMethod?.toUpperCase()}</div>
+  <div class="divider"></div>
+
+  <div class="flex-row" style="font-size:0.9em; text-transform:uppercase;">
+    <div>
+      <div>ORDER: #${sale.id?.toString().padStart(4, '0')}</div>
+      <div>DATE: ${dateStr}</div>
+    </div>
+    <div style="text-align:right;">
+      <div>TIME: ${timeStr}</div>
+      <div>CASHIER: ${sale.actorName?.split(' ')[0] || ''}</div>
+    </div>
+  </div>
+
+  ${memberHTML}
+
+  <div class="divider"></div>
+
+  <table>
+    <thead>
+      <tr style="border-bottom:1px dashed #666;">
+        <th style="padding-bottom:4px; text-align:left; text-transform:uppercase; width:32px;">Qty</th>
+        <th style="padding-bottom:4px; text-align:left; text-transform:uppercase;">Item</th>
+        <th style="padding-bottom:4px; text-align:right; text-transform:uppercase;">Amt</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <div style="font-size:0.9em; text-transform:uppercase;">
+    <div class="flex-row"><span>SUBTOTAL</span><span>${formatCurrency(subtotal, currencySymbol)}</span></div>
+    ${discountHTML}
+  </div>
+  <div class="total-row"><span>TOTAL</span><span>${formatCurrency(sale.totalAmount, currencySymbol)}</span></div>
+
+  <div class="divider"></div>
+
+  <div class="center" style="margin-top:12px;">
+    <div style="font-weight:900; text-transform:uppercase; margin-bottom:4px;">Thank you for visiting!</div>
+    ${footerHTML}
+    <div style="font-size:0.75em; text-transform:uppercase; margin-top:8px;">Powered by Zyntrum Tech</div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const handlePrint = () => {
+    const html = buildReceiptHTML();
+    // Use a large popup window so it's centered and the browser print dialog fits nicely
+    const win = window.open('', '_blank', `width=800,height=800,left=200,top=100`);
+    if (!win) { alert('Popup blocked! Please allow popups for this site.'); return; }
+    win.document.write(html);
     win.document.close();
-  }, [sale, printWidth, printFontSize, printPadding]);
+  };
 
-  const handlePrintAll = React.useCallback(() => {
-    // First print customer receipt, then after a short delay open kitchen receipt window
-    window.print();
-    if (sale.orderType !== 'dine_in') {
-      if (settings?.printKitchenReceiptTakeawayDelivery) {
-        setTimeout(() => {
-          printKitchenReceipt();
-        }, 500);
-      }
-    }
-  }, [sale.orderType, printKitchenReceipt, settings?.printKitchenReceiptTakeawayDelivery]);
-
-  const dynamicPrintStyle = `
-    @media print {
-      @page {
-        margin: 0;
-        size: ${printWidth}mm auto;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-      }
-      .thermal-receipt {
-        width: ${printWidth}mm !important;
-        max-width: ${printWidth}mm !important;
-        padding: ${printPadding}px !important;
-        font-size: ${printFontSize}px !important;
-        margin: 0 !important;
-      }
-    }
-  `;
-
+  // Auto-trigger print when autoPrint prop is set (e.g. immediately after checkout)
   React.useEffect(() => {
-    if (autoPrint) {
+    if (autoPrint && settings !== undefined) {
+      // Small delay to let settings load
       const timer = setTimeout(() => {
-        handlePrintAll();
-      }, 150);
+        handlePrint();
+        if (onClose) onClose(); // Auto-close the modal out of the way!
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [autoPrint, handlePrintAll]);
+  }, [autoPrint, settings]);
+
+  // If we are auto-printing, do not show the on-screen preview overlay to keep the UX fast and clean
+  if (autoPrint) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 print:p-0 print:bg-white print:block overflow-y-auto">
-      <style dangerouslySetInnerHTML={{ __html: dynamicPrintStyle }} />
-      
-      {/* Container for centering modal actions but allowing the receipt to be printed properly */}
-      <div className="flex flex-col items-center gap-4 py-8 print:py-0 w-full">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="flex flex-col items-center gap-4 py-8 w-full">
         
-        {/* Actions (Hidden on Print) */}
-        <div className="flex items-center gap-3 print:hidden">
-          <button onClick={handlePrintAll} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full font-bold shadow-lg shadow-violet-600/20 active:scale-95 transition-all">
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-full font-bold shadow-lg shadow-violet-600/20 active:scale-95 transition-all">
             <Printer size={18} /> Print Receipt
           </button>
           <button onClick={onClose} className="w-12 h-12 bg-white text-slate-600 rounded-full flex items-center justify-center font-bold shadow-lg hover:bg-slate-50 transition-all">
@@ -439,27 +646,30 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
           </button>
         </div>
 
-        {/* 80mm Thermal Receipt Simulation (approx 300px max width) */}
+        {/* On-screen Preview */}
         <div 
           style={{ fontSize: `${printFontSize}px`, padding: `${printPadding}px`, maxWidth: `${printWidth * 4}px` }}
-          className="bg-white text-black w-full shadow-2xl font-mono font-bold print:shadow-none print:m-0 mx-auto print:mx-0 thermal-receipt"
+          className="bg-white text-black w-full shadow-2xl font-mono font-bold mx-auto relative overflow-hidden"
         >
+          {sale.status === 'returned' && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 mb-4 rounded-2xl text-center">
+              <p className="font-black text-xs tracking-wider uppercase">VOID / RETURNED BILL</p>
+              {sale.returnReason && <p className="text-[10px] italic mt-1 font-semibold">Reason: {sale.returnReason}</p>}
+              {sale.returnedBy && <p className="text-[9px] mt-0.5 font-bold">Returned by: {sale.returnedBy}</p>}
+            </div>
+          )}
           
           {/* Header */}
           <div className="text-center mb-4">
             <h1 className="text-xl font-black uppercase mb-1">{settings?.shopName || 'Restaurant'}</h1>
             {settings?.shopAddress && <p className="text-[10px] uppercase">{settings.shopAddress}</p>}
             {settings?.shopPhone && <p className="text-[10px]">TEL: {settings.shopPhone}</p>}
-            
             <div className="border-t border-dashed border-black/30 my-3"></div>
-            
             <p className="font-bold text-sm uppercase">
               {sale.orderType === 'dine_in' ? '🍽️ Dine In' : sale.orderType === 'delivery' ? '🛵 Delivery' : '🛍️ Take Away'}
             </p>
             <p className="font-bold uppercase mt-1">PAYMENT: {sale.paymentMethod}</p>
-            
             <div className="border-t border-dashed border-black/30 my-3"></div>
-            
             <div className="flex justify-between text-[10px] uppercase text-left">
               <div>
                 <p>ORDER: #{sale.id?.toString().padStart(4, '0')}</p>
@@ -470,7 +680,6 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
                 <p>CASHIER: {sale.actorName?.split(' ')[0]}</p>
               </div>
             </div>
-            
             {customer && (
               <div className="mt-2 text-[10px] text-left uppercase border-t border-dashed border-black/20 pt-2">
                 <p className="font-bold">MEMBER: {customer.name}</p>
@@ -478,7 +687,6 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
                 {customer.phone && <p>PHONE: {customer.phone}</p>}
               </div>
             )}
-            
             <div className="border-t border-dashed border-black/30 my-3"></div>
           </div>
 
@@ -513,20 +721,15 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
           {/* Totals */}
           <div className="space-y-1 mb-4">
             <div className="flex justify-between text-xs uppercase">
-              <span>Subtotal</span>
-              <span>{formatCurrency(subtotal, currencySymbol)}</span>
+              <span>Subtotal</span><span>{formatCurrency(subtotal, currencySymbol)}</span>
             </div>
-            
             {discount > 0.01 && (
               <div className="flex justify-between text-xs uppercase">
-                <span>Membership Discount</span>
-                <span>-{formatCurrency(discount, currencySymbol)}</span>
+                <span>Membership Discount</span><span>-{formatCurrency(discount, currencySymbol)}</span>
               </div>
             )}
-            
             <div className="flex justify-between text-base font-black uppercase pt-2 mt-2 border-t border-dashed border-black/30">
-              <span>Total</span>
-              <span>{formatCurrency(sale.totalAmount, currencySymbol)}</span>
+              <span>Total</span><span>{formatCurrency(sale.totalAmount, currencySymbol)}</span>
             </div>
           </div>
 
@@ -538,11 +741,9 @@ export const InvoiceModal: React.FC<{ sale: any, customer: any, onClose: () => v
             {settings?.invoiceFooter && (
               <p className="text-[10px] uppercase mb-4 whitespace-pre-wrap">{settings.invoiceFooter}</p>
             )}
-            <p className="text-[8px] uppercase mt-4">Powered by Zynta Tech</p>
+            <p className="text-[8px] uppercase mt-4">Powered by Zyntrum Tech</p>
           </div>
-
         </div>
-
       </div>
     </div>
   );

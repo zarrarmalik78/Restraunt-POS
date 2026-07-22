@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import Stock from './pages/Stock';
 import NewSale from './pages/NewSale';
 import Sales from './pages/Sales';
+import CashSessions from './pages/CashSessions';
 import Customers from './pages/Customers';
 import Expenses from './pages/Expenses';
 import Settings from './pages/Settings';
@@ -62,7 +63,7 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
         <Router>
-          <Toaster position="top-right" containerClassName="print:hidden" toastOptions={{
+          <Toaster position="top-right" toastOptions={{
             style: {
               background: '#fff',
               color: '#1e293b',
@@ -100,6 +101,12 @@ function App() {
             <Route path="/sales" element={
               <ProtectedRoute>
                 <Layout><Sales /></Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/sessions" element={
+              <ProtectedRoute>
+                <Layout><CashSessions /></Layout>
               </ProtectedRoute>
             } />
             

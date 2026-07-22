@@ -21,7 +21,7 @@ const Customers: React.FC = () => {
   const totalSpentMap = useMemo(() => {
     const map: Record<string, number> = {};
     sales.forEach((s: any) => {
-      if (s.customerId) {
+      if (s.customerId && s.status !== 'returned') {
         map[s.customerId] = (map[s.customerId] || 0) + (s.totalAmount || 0);
       }
     });
@@ -208,7 +208,7 @@ const PurchaseHistoryModal: React.FC<{ customer: any; onClose: () => void }> = (
 
   const customerSales = useMemo(() => {
     return sales
-      .filter((s: any) => s.customerId === customer.id)
+      .filter((s: any) => s.customerId === customer.id && s.status !== 'returned')
       .sort((a: any, b: any) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales, customer.id]);
 

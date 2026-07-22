@@ -1,5 +1,5 @@
 #define MyAppName      "Pizza Hut POS"
-#define MyAppVersion   "1.0.0"
+#define MyAppVersion   "1.5.0.0"
 #define MyAppPublisher "Pizza Hut"
 
 [Setup]

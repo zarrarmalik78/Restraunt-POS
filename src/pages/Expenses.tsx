@@ -222,6 +222,7 @@ const Expenses: React.FC = () => {
 const AddExpenseModal: React.FC<{ categories: string[], expense?: any, onClose: () => void }> = ({ categories, expense, onClose }) => {
   const { shopId, userRole } = useAuth();
   const { documents: vendors } = useLiveTable('vendors');
+  const { documents: sessions } = useLiveTable('cashSessions');
   const isEditing = !!expense;
   const isCustomCategory = expense && !categories.includes(expense.category) && expense.category !== 'Other';
 
@@ -259,8 +260,10 @@ const AddExpenseModal: React.FC<{ categories: string[], expense?: any, onClose: 
         await db.expenses.update(expense.id, payload);
         toast.success('Expense updated');
       } else {
+        const activeSession = sessions.find((s: any) => s.status === 'open');
         await db.expenses.add({
           shopId,
+          sessionId: activeSession?.id,
           ...payload,
           actorId: userRole || 'system',
           actorName: 'System',

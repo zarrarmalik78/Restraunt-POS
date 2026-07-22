@@ -768,7 +768,7 @@ const SecureDeleteModal: React.FC<{ type: 'product'|'deal'; onClose: () => void;
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
              <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Admin Password</label>
-                <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-rose-500 outline-none transition-all font-bold tracking-widest" placeholder="••••••••" />
+                <input required type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-rose-500 outline-none transition-all font-bold tracking-widest" placeholder="••••••••" />
              </div>
              <div className="flex gap-3 mt-8">
                 <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-bold hover:bg-slate-100 transition-all">Cancel</button>

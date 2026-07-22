@@ -57,7 +57,7 @@ const DashboardContent: React.FC<any> = ({
  
     const filteredSales = (sales as any[]).filter((s) => {
       const d = s.saleDate instanceof Date ? s.saleDate.getTime() : new Date(s.saleDate).getTime();
-      return d >= start && d <= end;
+      return d >= start && d <= end && s.status !== 'returned';
     });
 
     let periodRevenue = 0, periodCash = 0, periodOnline = 0, periodCredit = 0;
@@ -110,7 +110,7 @@ const DashboardContent: React.FC<any> = ({
 
     for (const s of (sales as any[] || [])) {
       const d = s.saleDate instanceof Date ? s.saleDate.getTime() : new Date(s.saleDate).getTime();
-      if (d >= start && d <= end) {
+      if (d >= start && d <= end && s.status !== 'returned') {
         count++;
         revenue += s.totalAmount || 0;
       }

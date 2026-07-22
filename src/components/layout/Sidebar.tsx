@@ -25,7 +25,8 @@ import {
   Barcode,
   Shield,
   RefreshCcw,
-  Truck
+  Truck,
+  Briefcase
 } from 'lucide-react';
 import { useLiveDocument } from '../../db/hooks';
 import { useAuth } from '../../contexts/AuthContext';
@@ -73,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed: propCollapsed, onToggleCol
 
   const div1Items = [
     { name: 'POS', path: '/', icon: ShoppingCart, roles: ['admin', 'cashier'] },
+    { name: 'Sessions', path: '/sessions', icon: Briefcase, roles: ['admin', 'cashier'] },
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin'] },
     { name: 'Menu', path: '/stock', icon: Package, roles: ['admin', 'cashier'] },
     { name: 'Categories', path: '/categories', icon: Tag, roles: ['admin'] },
