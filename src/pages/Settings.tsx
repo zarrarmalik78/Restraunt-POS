@@ -293,8 +293,9 @@ const Settings: React.FC = () => {
 };
 
 const UserManagementSection: React.FC = () => {
-  const { currentUser, updateUserPassword, updateUsername } = useAuth();
+  const { currentUser, updateUserPassword, updateUsername, verifyPassword } = useAuth();
   const [username, setUsername] = useState(currentUser?.username || 'admin');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -322,14 +323,23 @@ const UserManagementSection: React.FC = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentPassword) return toast.error('Please enter your current password');
     if (!newPassword) return toast.error('Please enter a new password');
     if (newPassword !== confirmPassword) return toast.error('Passwords do not match');
     if (newPassword.length < 6) return toast.error('Password must be at least 6 characters');
 
     setSaving(true);
     try {
+      const isValid = await verifyPassword(currentPassword);
+      if (!isValid) {
+        toast.error('Incorrect current password');
+        setSaving(false);
+        return;
+      }
+
       await updateUserPassword(newPassword);
       toast.success('Password updated successfully');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
@@ -382,15 +392,31 @@ const UserManagementSection: React.FC = () => {
           </div>
 
           <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
+                placeholder="Current password..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="password"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
-                placeholder="••••••••"
+                placeholder="New password..."
               />
             </div>
           </div>
@@ -401,10 +427,11 @@ const UserManagementSection: React.FC = () => {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
-                placeholder="••••••••"
+                placeholder="Confirm new password..."
               />
             </div>
           </div>
@@ -435,14 +462,21 @@ const SettingsNavButton: React.FC<{ active: boolean, onClick: () => void, icon: 
 );
 
 const ManagerSecuritySection: React.FC<{ settings: any }> = ({ settings }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentPassword) return toast.error('Please enter current manager password');
     if (!newPassword.trim()) return toast.error('Please enter a new manager password');
     if (newPassword !== confirmPassword) return toast.error('Passwords do not match');
+
+    const expectedPassword = settings?.managerPassword || 'manager';
+    if (currentPassword.trim() !== expectedPassword) {
+      return toast.error('Incorrect current manager password');
+    }
 
     setSaving(true);
     try {
@@ -452,6 +486,7 @@ const ManagerSecuritySection: React.FC<{ settings: any }> = ({ settings }) => {
           updatedAt: new Date()
         });
         toast.success('Manager password updated successfully');
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
@@ -488,29 +523,46 @@ const ManagerSecuritySection: React.FC<{ settings: any }> = ({ settings }) => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Password</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Manager Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
-                placeholder="••••••••"
+                placeholder="Current manager password..."
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confirm Password</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">New Manager Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
+                placeholder="New manager password..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confirm Manager Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none"
-                placeholder="••••••••"
+                placeholder="Confirm new manager password..."
               />
             </div>
           </div>
